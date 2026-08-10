@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import {
   initializeFirestore,
   persistentLocalCache,
-  persistentMultipleTabManager,
+  persistentSingleTabManager,
   getFirestore
 } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
@@ -30,7 +30,7 @@ const dbId =
 let db;
 try {
   db = initializeFirestore(app, {
-    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    localCache: persistentLocalCache({ tabManager: persistentSingleTabManager({}) })
   }, dbId);
 } catch (e) {
   db = getFirestore(app, dbId);
