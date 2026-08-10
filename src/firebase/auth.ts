@@ -53,11 +53,21 @@ export async function loginWithEmail(email: string, pass: string) {
 }
 
 export async function loginWithGoogle() {
-  const credential = await signInWithPopup(auth, googleProvider);
-  if (credential.user) {
-    await syncUserProfile(credential.user);
+  try {
+    const credential = await signInWithPopup(auth, googleProvider);
+    if (credential.user) {
+      await syncUserProfile(credential.user);
+    }
+    return credential.user;
+  } catch (err: any) {
+    console.error('Google Auth error in firebase/auth:', {
+      code: err?.code,
+      message: err?.message,
+      name: err?.name,
+      customData: err?.customData,
+    });
+    throw err;
   }
-  return credential.user;
 }
 
 export async function logout() {

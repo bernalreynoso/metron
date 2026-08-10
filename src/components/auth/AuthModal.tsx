@@ -57,19 +57,15 @@ export const AuthModal: React.FC = () => {
     try {
       await loginWithGoogle();
     } catch (err: any) {
-      console.error('Google Auth error:', err);
-      const code = err?.code;
-      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-        setError('El inicio de sesión con Google fue cancelado.');
-      } else if (code === 'auth/popup-blocked') {
-        setError('El navegador bloqueó la ventana de Google. Permite ventanas emergentes para Metron e inténtalo nuevamente.');
-      } else if (code === 'auth/account-exists-with-different-credential') {
-        setError('Ya existe una cuenta registrada con este correo mediante otro método de inicio de sesión.');
-      } else if (code === 'auth/unauthorized-domain') {
-        setError('Este dominio todavía no está autorizado para iniciar sesión con Google.');
-      } else {
-        setError('No se pudo iniciar sesión con Google. Intenta nuevamente.');
-      }
+      console.error('Google Auth error:', {
+        code: err?.code,
+        message: err?.message,
+        name: err?.name,
+        customData: err?.customData,
+      });
+      const code = err?.code || 'sin código';
+      const msg = err?.message || 'sin mensaje';
+      setError(`Error de Google Auth\nCódigo: ${code}\nMensaje: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -170,7 +166,7 @@ export const AuthModal: React.FC = () => {
           )}
 
           {error && (
-            <div className="p-3 bg-[#2a1a1a] border border-[#4a2d2d] rounded-lg text-xs text-[#f87171]">
+            <div className="p-3 bg-[#2a1a1a] border border-[#4a2d2d] rounded-lg text-xs text-[#f87171] whitespace-pre-wrap">
               {error}
             </div>
           )}
