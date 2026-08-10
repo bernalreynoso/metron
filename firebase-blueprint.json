@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "User": {
+      "collection": "users",
+      "fields": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    },
+    "Activity": {
+      "collection": "users/{userId}/activities",
+      "fields": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "type": { "type": "string" },
+        "direction": { "type": "string" },
+        "active": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    },
+    "Record": {
+      "collection": "users/{userId}/records",
+      "fields": {
+        "activityId": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string" },
+        "value": { "type": "any" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    }
+  }
+}
