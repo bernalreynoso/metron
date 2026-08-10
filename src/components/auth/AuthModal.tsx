@@ -50,13 +50,26 @@ export const AuthModal: React.FC = () => {
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) return;
     setError(null);
+    setSuccessMsg(null);
     setLoading(true);
     try {
       await loginWithGoogle();
     } catch (err: any) {
       console.error('Google Auth error:', err);
-      setError('No se pudo iniciar sesión con Google. Intenta nuevamente.');
+      const code = err?.code;
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        setError('El inicio de sesión con Google fue cancelado.');
+      } else if (code === 'auth/popup-blocked') {
+        setError('El navegador bloqueó la ventana de Google. Permite ventanas emergentes para Metron e inténtalo nuevamente.');
+      } else if (code === 'auth/account-exists-with-different-credential') {
+        setError('Ya existe una cuenta registrada con este correo mediante otro método de inicio de sesión.');
+      } else if (code === 'auth/unauthorized-domain') {
+        setError('Este dominio todavía no está autorizado para iniciar sesión con Google.');
+      } else {
+        setError('No se pudo iniciar sesión con Google. Intenta nuevamente.');
+      }
     } finally {
       setLoading(false);
     }
