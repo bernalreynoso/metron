@@ -61,13 +61,17 @@ export async function loginWithEmail(email: string, pass: string) {
 }
 
 export async function loginWithGoogle() {
-  console.log('Google Auth: iniciando popup');
+  console.log('METRON AUTH 1: iniciando Google popup');
   const credential = await signInWithPopup(auth, googleProvider);
-  console.log('Google Auth: popup completado', {
+  console.log('METRON AUTH 2: popup completado', {
     uid: credential.user?.uid
   });
   if (credential.user) {
+    console.log('METRON AUTH 3: usuario recibido', credential.user.uid);
+    console.log('METRON AUTH 4: sincronización de perfil');
     await syncUserProfile(credential.user);
+  } else {
+    console.warn('METRON AUTH 3: sin usuario en credential');
   }
   return credential.user;
 }

@@ -21,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log('METRON AUTH 5: onAuthStateChanged detectó usuario:', currentUser?.uid || 'null');
       setUser(currentUser);
       if (currentUser) {
         try {
