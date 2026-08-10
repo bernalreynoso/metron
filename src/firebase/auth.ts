@@ -61,7 +61,11 @@ export async function loginWithEmail(email: string, pass: string) {
 }
 
 export async function loginWithGoogle() {
+  console.log('Google Auth: iniciando popup');
   const credential = await signInWithPopup(auth, googleProvider);
+  console.log('Google Auth: popup completado', {
+    uid: credential.user?.uid
+  });
   if (credential.user) {
     await syncUserProfile(credential.user);
   }

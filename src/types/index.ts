@@ -1,6 +1,14 @@
-export type ActivityType = 'counter' | 'boolean';
+export type ActivityType = 'counter' | 'boolean' | 'checkpoint';
 
-export type ActivityDirection = 'increase' | 'decrease' | 'compliance';
+export type CheckpointMode = 'single' | 'multiple';
+
+export type ActivityDirection =
+  | 'increase'
+  | 'decrease'
+  | 'compliance'
+  | 'earlier'
+  | 'later'
+  | 'neutral';
 
 export interface Activity {
   id: string;
@@ -9,6 +17,7 @@ export interface Activity {
   icon: string;
   type: ActivityType;
   direction: ActivityDirection;
+  checkpointMode?: CheckpointMode;
   active: boolean;
   order: number;
   createdAt: any;
@@ -20,7 +29,8 @@ export interface ActivityRecord {
   activityId: string;
   date: string; // YYYY-MM-DD local
   type: ActivityType;
-  value: number | boolean; // 1 for counter increment, -1 for decrement, boolean for boolean
+  value?: number | boolean | null; // 1 or -1 for counter, boolean for boolean
+  timestamp?: any; // Firebase Timestamp or Date/millis/string for checkpoint
   createdAt: any;
   updatedAt: any;
 }
@@ -62,6 +72,23 @@ export interface BooleanMetrics {
   currentCompliance: number; // percentage based on RECORDED days
   prevCompliance: number;
   percentagePointsChange: number;
+  trend: TrendStatus;
+  hasComparisonData: boolean;
+}
+
+export interface CheckpointMetrics {
+  todayRecordsCount: number;
+  todayLastFormattedTime: string | null;
+  todayAllFormattedTimes: string[];
+  avgFormattedTime: string | null;
+  earliestFormattedTime: string | null;
+  latestFormattedTime: string | null;
+  currentPeriodAvgMinutes: number | null;
+  prevPeriodAvgMinutes: number | null;
+  currentDaysWithData: number;
+  prevDaysWithData: number;
+  totalDaysInPeriod: number;
+  minuteDiff: number | null;
   trend: TrendStatus;
   hasComparisonData: boolean;
 }

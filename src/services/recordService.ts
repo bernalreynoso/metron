@@ -203,3 +203,46 @@ export async function clearRecordsForActivityAndDate(
   snap.docs.forEach((d) => batch.delete(d.ref));
   return await batch.commit();
 }
+
+/**
+ * Adds a checkpoint record with serverTimestamp() or a custom Date timestamp.
+ */
+export async function addCheckpointRecord(
+  userId: string,
+  activityId: string,
+  date: string,
+  customTimestamp?: Date
+) {
+  const recordsRef = collection(db, 'users', userId, 'records');
+  return await addDoc(recordsRef, {
+    activityId,
+    date,
+    type: 'checkpoint',
+    timestamp: customTimestamp || serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Updates an existing checkpoint record's timestamp (e.g. editing time in History).
+ */
+export async function updateCheckpointRecordTime(
+  userId: string,
+  recordId: string,
+  newTimestamp: Date
+) {
+  const recordRef = doc(db, 'users', userId, 'records', recordId);
+  return await updateDoc(recordRef, {
+    timestamp: newTimestamp,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Deletes a single specific checkpoint record.
+ */
+export async function deleteCheckpointRecord(userId: string, recordId: string) {
+  const recordRef = doc(db, 'users', userId, 'records', recordId);
+  return await deleteDoc(recordRef);
+}

@@ -78,3 +78,95 @@ export function formatShortDate(dateStr: string): string {
   const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   return `${date.getDate()} ${monthNames[date.getMonth()]}`;
 }
+
+/**
+ * Extracts JS Date object safely from Firestore Timestamp, Date, number, or string.
+ */
+export function parseTimestampToDate(timestampOrDate: any): Date {
+  if (!timestampOrDate) return new Date();
+  if (timestampOrDate?.toDate && typeof timestampOrDate.toDate === 'function') {
+    return timestampOrDate.toDate();
+  }
+  if (timestampOrDate?.seconds !== undefined) {
+    return new Date(timestampOrDate.seconds * 1000);
+  }
+  if (timestampOrDate instanceof Date) {
+    return timestampOrDate;
+  }
+  if (typeof timestampOrDate === 'number') {
+    return new Date(timestampOrDate);
+  }
+  if (typeof timestampOrDate === 'string') {
+    const parsed = new Date(timestampOrDate);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}
+
+/**
+ * Returns time in minutes from midnight (0 - 1439) for a given timestamp or Date.
+ */
+export function getTimeInMinutesFromMidnight(timestampOrDate: any): number {
+  const date = parseTimestampToDate(timestampOrDate);
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+/**
+ * Formats a timestamp into local readable time (e.g. "4:03 PM" or "16:03").
+ */
+export function formatLocalTime(timestampOrDate: any): string {
+  if (!timestampOrDate) return 'Sin registrar';
+  const date = parseTimestampToDate(timestampOrDate);
+  return date.toLocaleTimeString('es-ES', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+/**
+ * Formats 24h time string HH:mm for HTML time input.
+ */
+export function formatTimeForInput(timestampOrDate: any): string {
+  const date = parseTimestampToDate(timestampOrDate);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+/**
+ * Converts total minutes from midnight into formatted local time (e.g. "4:03 PM").
+ */
+export function formatMinutesToTime(totalMinutes: number): string {
+  const normalized = ((Math.round(totalMinutes) % 1440) + 1440) % 1440;
+  const hours = Math.floor(normalized / 60);
+  const minutes = normalized % 60;
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d.toLocaleTimeString('es-ES', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+/**
+ * Calculates the circular average of time-of-day minutes (0-1439).
+ * Correctly handles midnight crossing (e.g. 23:50, 00:10, 00:30 => ~00:10).
+ */
+export function calculateCircularAverageMinutes(minutesList: number[]): number | null {
+  if (minutesList.length === 0) return null;
+  let sumSin = 0;
+  let sumCos = 0;
+  for (const m of minutesList) {
+    const angle = (m * 2 * Math.PI) / 1440;
+    sumSin += Math.sin(angle);
+    sumCos += Math.cos(angle);
+  }
+  let avgAngle = Math.atan2(sumSin, sumCos);
+  if (avgAngle < 0) {
+    avgAngle += 2 * Math.PI;
+  }
+  const avgMinutes = Math.round((avgAngle * 1440) / (2 * Math.PI)) % 1440;
+  return avgMinutes;
+}

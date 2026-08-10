@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Activity, ActivityRecord, PeriodRange, TrendStatus } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
-import { calculateBooleanMetrics, calculateCounterMetrics } from '../../utils/metrics';
-import { getComparisonPeriodDates, getPastNDays } from '../../utils/dates';
-import { TrendingUp, TrendingDown, Minus, Activity as ActivityIcon, ChevronRight } from 'lucide-react';
+import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from '../../utils/metrics';
+import { getComparisonPeriodDates } from '../../utils/dates';
+import { TrendingUp, TrendingDown, Minus, ChevronRight } from 'lucide-react';
 
 interface TrendsListProps {
   activities: Activity[];
@@ -54,13 +54,17 @@ export const TrendsList: React.FC<TrendsListProps> = ({
           // Compute records maps for this activity
           const counterMap: Record<string, number> = {};
           const booleanMap: Record<string, boolean | null> = {};
+          const checkpointMap: Record<string, ActivityRecord[]> = {};
 
           records.forEach((r) => {
             if (r.activityId === activity.id) {
               if (activity.type === 'counter') {
                 counterMap[r.date] = (counterMap[r.date] || 0) + Number(r.value);
-              } else {
+              } else if (activity.type === 'boolean') {
                 booleanMap[r.date] = r.value === true;
+              } else if (activity.type === 'checkpoint') {
+                if (!checkpointMap[r.date]) checkpointMap[r.date] = [];
+                checkpointMap[r.date].push(r);
               }
             }
           });
@@ -75,7 +79,16 @@ export const TrendsList: React.FC<TrendsListProps> = ({
               ? calculateBooleanMetrics(activity, booleanMap, todayStr, currentPeriod, previousPeriod)
               : null;
 
-          const trend: TrendStatus = counterMetrics ? counterMetrics.trend : booleanMetrics!.trend;
+          const checkpointMetrics =
+            activity.type === 'checkpoint'
+              ? calculateCheckpointMetrics(activity, checkpointMap, todayStr, currentPeriod, previousPeriod)
+              : null;
+
+          const trend: TrendStatus = counterMetrics
+            ? counterMetrics.trend
+            : booleanMetrics
+            ? booleanMetrics.trend
+            : checkpointMetrics!.trend;
 
           const renderTrendBadge = () => {
             switch (trend) {
@@ -139,11 +152,17 @@ export const TrendsList: React.FC<TrendsListProps> = ({
                         <span>•</span>
                         <span>Prom: <strong className="text-[#e2e2e2] font-mono">{counterMetrics.currentPeriodAvg}/día reg.</strong></span>
                       </>
-                    ) : booleanMetrics ? (
+                    ) : activity.type === 'boolean' && booleanMetrics ? (
                       <>
                         <span>Sí: <strong className="text-[#e2e2e2] font-mono">{booleanMetrics.currentTrueCount}/{booleanMetrics.currentRecordedDays}</strong> (Reg: {booleanMetrics.currentRecordedDays}/{booleanMetrics.totalDaysInPeriod}d)</span>
                         <span>•</span>
                         <span>Cumplimiento: <strong className="text-[#e2e2e2] font-mono">{booleanMetrics.currentCompliance}%</strong></span>
+                      </>
+                    ) : activity.type === 'checkpoint' && checkpointMetrics ? (
+                      <>
+                        <span>Hora Prom: <strong className="text-[#e2e2e2] font-mono">{checkpointMetrics.avgFormattedTime || '--:--'}</strong></span>
+                        <span>•</span>
+                        <span>Días reg: <strong className="text-[#e2e2e2] font-mono">{checkpointMetrics.currentDaysWithData}/{checkpointMetrics.totalDaysInPeriod}d</strong></span>
                       </>
                     ) : null}
                   </div>

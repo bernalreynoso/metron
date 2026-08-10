@@ -1,4 +1,18 @@
-import { Activity, BooleanMetrics, CounterMetrics, TrendStatus } from '../types';
+import {
+  Activity,
+  ActivityRecord,
+  BooleanMetrics,
+  CheckpointMetrics,
+  CounterMetrics,
+  TrendStatus,
+} from '../types';
+import {
+  formatLocalTime,
+  formatMinutesToTime,
+  getTimeInMinutesFromMidnight,
+  calculateCircularAverageMinutes,
+  parseTimestampToDate,
+} from './dates';
 
 /**
  * Calculates counter metrics for an activity given records map (date -> total value).
@@ -156,6 +170,144 @@ export function calculateBooleanMetrics(
     currentCompliance,
     prevCompliance,
     percentagePointsChange,
+    trend,
+    hasComparisonData,
+  };
+}
+
+/**
+ * Calculates checkpoint metrics given map of date -> array of checkpoint records.
+ */
+export function calculateCheckpointMetrics(
+  activity: Activity,
+  checkpointRecordsByDate: Record<string, ActivityRecord[]>,
+  todayStr: string,
+  currentPeriodDates: string[],
+  previousPeriodDates: string[]
+): CheckpointMetrics {
+  const rawTodayRecords = checkpointRecordsByDate[todayStr] || [];
+  const todayRecords = [...rawTodayRecords].sort(
+    (a, b) => parseTimestampToDate(a.timestamp).getTime() - parseTimestampToDate(b.timestamp).getTime()
+  );
+  const todayRecordsCount = todayRecords.length;
+  const todayAllFormattedTimes = todayRecords.map((r) => formatLocalTime(r.timestamp));
+  const todayLastFormattedTime =
+    todayAllFormattedTimes.length > 0
+      ? todayAllFormattedTimes[todayAllFormattedTimes.length - 1]
+      : null;
+
+  const mode = activity.checkpointMode || 'single';
+
+  // Extract minutes from midnight for current period
+  const currentMinutesList: number[] = [];
+  let currentDaysWithData = 0;
+
+  for (const date of currentPeriodDates) {
+    const rawDayRecords = checkpointRecordsByDate[date] || [];
+    if (rawDayRecords.length > 0) {
+      currentDaysWithData++;
+      const sortedDayRecords = [...rawDayRecords].sort(
+        (a, b) => parseTimestampToDate(a.timestamp).getTime() - parseTimestampToDate(b.timestamp).getTime()
+      );
+      if (mode === 'single') {
+        // Use ONLY the LAST checkpoint record of the day as primary daily value
+        const lastRecord = sortedDayRecords[sortedDayRecords.length - 1];
+        currentMinutesList.push(getTimeInMinutesFromMidnight(lastRecord.timestamp));
+      } else {
+        // Multiple mode: include all checkpoint records of the day
+        sortedDayRecords.forEach((r) => {
+          currentMinutesList.push(getTimeInMinutesFromMidnight(r.timestamp));
+        });
+      }
+    }
+  }
+
+  // Extract minutes from midnight for previous period
+  const prevMinutesList: number[] = [];
+  let prevDaysWithData = 0;
+
+  for (const date of previousPeriodDates) {
+    const rawDayRecords = checkpointRecordsByDate[date] || [];
+    if (rawDayRecords.length > 0) {
+      prevDaysWithData++;
+      const sortedDayRecords = [...rawDayRecords].sort(
+        (a, b) => parseTimestampToDate(a.timestamp).getTime() - parseTimestampToDate(b.timestamp).getTime()
+      );
+      if (mode === 'single') {
+        // Use ONLY the LAST checkpoint record of the day as primary daily value
+        const lastRecord = sortedDayRecords[sortedDayRecords.length - 1];
+        prevMinutesList.push(getTimeInMinutesFromMidnight(lastRecord.timestamp));
+      } else {
+        // Multiple mode: include all checkpoint records of the day
+        sortedDayRecords.forEach((r) => {
+          prevMinutesList.push(getTimeInMinutesFromMidnight(r.timestamp));
+        });
+      }
+    }
+  }
+
+  let avgFormattedTime: string | null = null;
+  let earliestFormattedTime: string | null = null;
+  let latestFormattedTime: string | null = null;
+  let currentPeriodAvgMinutes: number | null = null;
+  let prevPeriodAvgMinutes: number | null = null;
+
+  if (currentMinutesList.length > 0) {
+    const earliestMin = Math.min(...currentMinutesList);
+    const latestMin = Math.max(...currentMinutesList);
+    currentPeriodAvgMinutes = calculateCircularAverageMinutes(currentMinutesList);
+
+    earliestFormattedTime = formatMinutesToTime(earliestMin);
+    latestFormattedTime = formatMinutesToTime(latestMin);
+    if (currentPeriodAvgMinutes !== null) {
+      avgFormattedTime = formatMinutesToTime(currentPeriodAvgMinutes);
+    }
+  }
+
+  if (prevMinutesList.length > 0) {
+    prevPeriodAvgMinutes = calculateCircularAverageMinutes(prevMinutesList);
+  }
+
+  const hasComparisonData = currentDaysWithData >= 2 && prevDaysWithData >= 2;
+  let minuteDiff: number | null = null;
+  let trend: TrendStatus = 'SIN DATOS SUFICIENTES';
+
+  if (
+    hasComparisonData &&
+    currentPeriodAvgMinutes !== null &&
+    prevPeriodAvgMinutes !== null
+  ) {
+    // Circular signed difference in minutes (-720 to +720)
+    minuteDiff =
+      (((currentPeriodAvgMinutes - prevPeriodAvgMinutes + 720) % 1440 + 1440) % 1440) - 720;
+
+    if (Math.abs(minuteDiff) <= 5) {
+      trend = 'ESTABLE';
+    } else {
+      const isEarlier = minuteDiff < 0;
+      if (activity.direction === 'earlier' || activity.direction === 'decrease') {
+        trend = isEarlier ? 'MEJORANDO' : 'EMPEORANDO';
+      } else if (activity.direction === 'later' || activity.direction === 'increase') {
+        trend = isEarlier ? 'EMPEORANDO' : 'MEJORANDO';
+      } else {
+        trend = 'ESTABLE';
+      }
+    }
+  }
+
+  return {
+    todayRecordsCount,
+    todayLastFormattedTime,
+    todayAllFormattedTimes,
+    avgFormattedTime,
+    earliestFormattedTime,
+    latestFormattedTime,
+    currentPeriodAvgMinutes,
+    prevPeriodAvgMinutes,
+    currentDaysWithData,
+    prevDaysWithData,
+    totalDaysInPeriod: currentPeriodDates.length,
+    minuteDiff,
     trend,
     hasComparisonData,
   };

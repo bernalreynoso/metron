@@ -14,12 +14,13 @@ import { ActivityList } from './components/actividades/ActivityList';
 
 import { Activity, ActivityRecord, ActiveTab } from './types';
 import { formatSpanishDate, getLocalDateString, getPastNDays, getComparisonPeriodDates } from './utils/dates';
-import { calculateBooleanMetrics, calculateCounterMetrics } from './utils/metrics';
+import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from './utils/metrics';
 import {
   subscribeActivities,
   createActivity,
   updateActivity,
   toggleActivityActive,
+  deleteActivityPermanently,
 } from './services/activityService';
 import {
   subscribeRecordsByDateRange,
@@ -27,6 +28,8 @@ import {
   addCounterIncrement,
   addCounterDecrement,
   setBooleanRecord,
+  addCheckpointRecord,
+  deleteCheckpointRecord,
 } from './services/recordService';
 
 function MainApp() {
@@ -158,13 +161,17 @@ function MainApp() {
   // Prepare records for today
   const todayCounterMap: Record<string, number> = {};
   const todayBooleanMap: Record<string, boolean | null> = {};
+  const todayCheckpointMap: Record<string, ActivityRecord[]> = {};
 
   records.forEach((r) => {
     if (r.date === todayStr) {
       if (r.type === 'counter') {
         todayCounterMap[r.activityId] = (todayCounterMap[r.activityId] || 0) + Number(r.value);
-      } else {
+      } else if (r.type === 'boolean') {
         todayBooleanMap[r.activityId] = r.value === true;
+      } else if (r.type === 'checkpoint') {
+        if (!todayCheckpointMap[r.activityId]) todayCheckpointMap[r.activityId] = [];
+        todayCheckpointMap[r.activityId].push(r);
       }
     }
   });
@@ -179,13 +186,17 @@ function MainApp() {
   activeActivities.forEach((act) => {
     const counterMap: Record<string, number> = {};
     const booleanMap: Record<string, boolean | null> = {};
+    const checkpointMap: Record<string, ActivityRecord[]> = {};
 
     records.forEach((r) => {
       if (r.activityId === act.id) {
         if (act.type === 'counter') {
           counterMap[r.date] = (counterMap[r.date] || 0) + Number(r.value);
-        } else {
+        } else if (act.type === 'boolean') {
           booleanMap[r.date] = r.value === true;
+        } else if (act.type === 'checkpoint') {
+          if (!checkpointMap[r.date]) checkpointMap[r.date] = [];
+          checkpointMap[r.date].push(r);
         }
       }
     });
@@ -193,7 +204,9 @@ function MainApp() {
     const trend =
       act.type === 'counter'
         ? calculateCounterMetrics(act, counterMap, todayStr, currentPeriod, previousPeriod).trend
-        : calculateBooleanMetrics(act, booleanMap, todayStr, currentPeriod, previousPeriod).trend;
+        : act.type === 'boolean'
+        ? calculateBooleanMetrics(act, booleanMap, todayStr, currentPeriod, previousPeriod).trend
+        : calculateCheckpointMetrics(act, checkpointMap, todayStr, currentPeriod, previousPeriod).trend;
 
     if (trend === 'MEJORANDO') improvingCount++;
     else if (trend === 'EMPEORANDO') worseningCount++;
@@ -217,6 +230,16 @@ function MainApp() {
     setBooleanRecord(user.uid, activityId, dateStr, val);
   };
 
+  const handleAddCheckpoint = async (activityId: string, dateStr: string = todayStr) => {
+    if (!user) return;
+    await addCheckpointRecord(user.uid, activityId, dateStr);
+  };
+
+  const handleDeleteCheckpoint = async (recordId: string) => {
+    if (!user) return;
+    await deleteCheckpointRecord(user.uid, recordId);
+  };
+
   const handleCreateActivity = async (data: Omit<Activity, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!user) return;
     await createActivity(user.uid, data);
@@ -230,6 +253,11 @@ function MainApp() {
   const handleToggleActive = async (activityId: string, active: boolean) => {
     if (!user) return;
     await toggleActivityActive(user.uid, activityId, active);
+  };
+
+  const handleDeleteActivityPermanently = async (activityId: string) => {
+    if (!user) return;
+    await deleteActivityPermanently(user.uid, activityId);
   };
 
   return (
@@ -268,6 +296,7 @@ function MainApp() {
                   const counterVal = activity.id in todayCounterMap ? todayCounterMap[activity.id] : null;
                   const booleanVal =
                     activity.id in todayBooleanMap ? todayBooleanMap[activity.id] : null;
+                  const checkpointRecords = todayCheckpointMap[activity.id] || [];
 
                   return (
                     <ActivityCard
@@ -275,9 +304,11 @@ function MainApp() {
                       activity={activity}
                       counterValue={counterVal}
                       booleanValue={booleanVal}
+                      checkpointRecords={checkpointRecords}
                       onIncrementCounter={(actId) => handleIncrement(actId, todayStr)}
                       onDecrementCounter={(actId) => handleDecrement(actId, todayStr)}
                       onSetBoolean={(actId, val) => handleSetBoolean(actId, todayStr, val)}
+                      onAddCheckpoint={(actId) => handleAddCheckpoint(actId, todayStr)}
                     />
                   );
                 })}
@@ -329,6 +360,8 @@ function MainApp() {
               onIncrementCounter={handleIncrement}
               onDecrementCounter={handleDecrement}
               onSetBoolean={handleSetBoolean}
+              onAddCheckpoint={handleAddCheckpoint}
+              onDeleteCheckpoint={handleDeleteCheckpoint}
             />
           </div>
         )}
@@ -341,6 +374,7 @@ function MainApp() {
             onCreateActivity={handleCreateActivity}
             onUpdateActivity={handleUpdateActivity}
             onToggleActive={handleToggleActive}
+            onDeleteActivity={handleDeleteActivityPermanently}
           />
         )}
       </main>

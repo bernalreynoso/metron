@@ -148,3 +148,14 @@ export async function updateActivity(
 export async function toggleActivityActive(userId: string, activityId: string, active: boolean) {
   return await updateActivity(userId, activityId, { active });
 }
+
+export async function deleteActivityPermanently(userId: string, activityId: string) {
+  const hasRecords = await hasActivityRecords(userId, activityId);
+  if (hasRecords) {
+    throw new Error(
+      'No se puede eliminar permanentemente esta actividad porque posee registros históricos. Puedes desactivarla para ocultarla de la pantalla de hoy.'
+    );
+  }
+  const activityRef = doc(db, 'users', userId, 'activities', activityId);
+  return await deleteDoc(activityRef);
+}
