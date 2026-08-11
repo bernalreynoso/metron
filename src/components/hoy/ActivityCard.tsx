@@ -100,6 +100,66 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
     }
   };
 
+  const getStatusBadge = () => {
+    if (activity.type === 'boolean') {
+      if (localBoolean === true) {
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d] flex items-center space-x-1 shrink-0">
+            <Check className="w-3 h-3 stroke-[3]" />
+            <span>Realizada</span>
+          </span>
+        );
+      }
+      if (localBoolean === false) {
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#2a1a1a] text-[#f87171] border border-[#4a2d2d] flex items-center space-x-1 shrink-0">
+            <X className="w-3 h-3 stroke-[3]" />
+            <span>No realizada</span>
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#18181b] text-[#888888] border border-[#28282b] border-dashed shrink-0">
+          Sin registro
+        </span>
+      );
+    }
+
+    if (activity.type === 'counter') {
+      if (localCounter !== null) {
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d] flex items-center space-x-1 shrink-0">
+            <Check className="w-3 h-3 stroke-[3]" />
+            <span>Registrada</span>
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#18181b] text-[#888888] border border-[#28282b] border-dashed shrink-0">
+          Sin registro
+        </span>
+      );
+    }
+
+    if (activity.type === 'checkpoint') {
+      if (checkpointRecords.length > 0) {
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d] flex items-center space-x-1 shrink-0">
+            <Check className="w-3 h-3 stroke-[3]" />
+            <span>{checkpointRecords.length === 1 ? 'Registrada' : `${checkpointRecords.length} registros`}</span>
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#18181b] text-[#888888] border border-[#28282b] border-dashed shrink-0">
+          Sin registro
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="bg-[#131315] border border-[#1e1e20] rounded-2xl p-4 shadow-lg hover:border-[#c5a059]/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Activity Details */}
@@ -108,9 +168,10 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
           <IconRenderer name={activity.icon} className="w-5 h-5" />
         </div>
         <div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-[#e2e2e2]">{activity.name}</h3>
             {getDirectionBadge()}
+            {getStatusBadge()}
           </div>
           {activity.description && (
             <p className="text-xs text-[#888888] mt-0.5 line-clamp-1 font-light">{activity.description}</p>

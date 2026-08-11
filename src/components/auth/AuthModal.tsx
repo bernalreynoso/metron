@@ -134,6 +134,7 @@ export const AuthModal: React.FC = () => {
                 id="auth-email"
                 type="email"
                 required
+                autoComplete="email"
                 placeholder="correo@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -167,6 +168,7 @@ export const AuthModal: React.FC = () => {
                   id="auth-password"
                   type="password"
                   required
+                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

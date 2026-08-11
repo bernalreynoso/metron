@@ -5,6 +5,8 @@ import { Header } from './components/common/Header';
 import { Navigation } from './components/common/Navigation';
 import { EmptyState, LoadingSpinner } from './components/common/EmptyState';
 import { ActivityCard } from './components/hoy/ActivityCard';
+import { DailySummary } from './components/hoy/DailySummary';
+import { DailyActivityChart, DayChartItem } from './components/hoy/DailyActivityChart';
 import { SummaryCards } from './components/progreso/SummaryCards';
 import { TrendsList } from './components/progreso/TrendsList';
 import { ActivityDetailModal } from './components/progreso/ActivityDetailModal';
@@ -13,7 +15,7 @@ import { HistoryRecordEditor } from './components/historial/HistoryRecordEditor'
 import { ActivityList } from './components/actividades/ActivityList';
 
 import { Activity, ActivityRecord, ActiveTab } from './types';
-import { formatSpanishDate, getLocalDateString, getPastNDays, getComparisonPeriodDates } from './utils/dates';
+import { formatSpanishDate, formatShortDate, getLocalDateString, getPastNDays, getComparisonPeriodDates } from './utils/dates';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from './utils/metrics';
 import {
   subscribeActivities,
@@ -43,7 +45,38 @@ function MainApp() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   // Today's logical local date string YYYY-MM-DD
-  const todayStr = getLocalDateString();
+  const [todayStr, setTodayStr] = useState<string>(getLocalDateString());
+
+  // Filter for HOY tab: 'all' | 'pending' | 'completed'
+  const [hoyFilter, setHoyFilter] = useState<'all' | 'pending' | 'completed'>('all');
+
+  // Automatic Day Change Detection
+  useEffect(() => {
+    const checkDateChange = () => {
+      const nowStr = getLocalDateString();
+      if (nowStr !== todayStr) {
+        setTodayStr(nowStr);
+      }
+    };
+
+    window.addEventListener('focus', checkDateChange);
+    document.addEventListener('visibilitychange', checkDateChange);
+    const timer = setInterval(checkDateChange, 60000);
+
+    return () => {
+      window.removeEventListener('focus', checkDateChange);
+      document.removeEventListener('visibilitychange', checkDateChange);
+      clearInterval(timer);
+    };
+  }, [todayStr]);
+
+  // Re-verify date string on tab switch
+  useEffect(() => {
+    const nowStr = getLocalDateString();
+    if (nowStr !== todayStr) {
+      setTodayStr(nowStr);
+    }
+  }, [currentTab]);
 
   // Selected date for HISTORIAL tab
   const [historyDate, setHistoryDate] = useState<string>(todayStr);
@@ -176,6 +209,98 @@ function MainApp() {
     }
   });
 
+  // Calculate HOY Summary Metrics
+  let completedCount = 0;
+  let pendingCount = 0;
+  let notCompliedCount = 0;
+  let checkpointsCountToday = 0;
+
+  activeActivities.forEach((act) => {
+    if (act.type === 'boolean') {
+      const val = todayBooleanMap[act.id];
+      if (val === true) {
+        completedCount++;
+      } else if (val === false) {
+        notCompliedCount++;
+      } else {
+        pendingCount++;
+      }
+    } else if (act.type === 'counter') {
+      if (act.id in todayCounterMap && todayCounterMap[act.id] !== null) {
+        completedCount++;
+      } else {
+        pendingCount++;
+      }
+    } else if (act.type === 'checkpoint') {
+      const recs = todayCheckpointMap[act.id] || [];
+      checkpointsCountToday += recs.length;
+      if (recs.length > 0) {
+        completedCount++;
+      } else {
+        pendingCount++;
+      }
+    }
+  });
+
+  const totalActive = activeActivities.length;
+  const compliancePct = totalActive > 0 ? Math.round((completedCount / totalActive) * 100) : 0;
+
+  // Past 7 days (including today) for Daily Evolution Chart
+  const past7Days = getPastNDays(7, todayStr);
+  const dayChartItems: DayChartItem[] = past7Days.map((dStr) => {
+    const isToday = dStr === todayStr;
+    const dayLabel = isToday ? 'Hoy' : formatShortDate(dStr);
+
+    // Count distinct activityIds in records for this date (active or inactive)
+    const distinctRecordedActivityIds = new Set(
+      records.filter((r) => r.date === dStr).map((r) => r.activityId)
+    );
+    const recordedForDay = distinctRecordedActivityIds.size;
+
+    return {
+      dateStr: dStr,
+      dayLabel,
+      recordedCount: recordedForDay,
+      totalActiveCount: totalActive,
+      isToday,
+    };
+  });
+
+  // Filtered Activities for HOY view
+  const filteredHoyActivities = activeActivities.filter((act) => {
+    if (hoyFilter === 'all') return true;
+
+    let isCompleted = false;
+    let isPending = false;
+
+    if (act.type === 'boolean') {
+      const val = todayBooleanMap[act.id];
+      if (val === true) {
+        isCompleted = true;
+      } else if (val === null || val === undefined) {
+        isPending = true;
+      }
+      // Note: val === false is explicitly 'No', so it is neither completed nor pending
+    } else if (act.type === 'counter') {
+      if (act.id in todayCounterMap && todayCounterMap[act.id] !== null) {
+        isCompleted = true;
+      } else {
+        isPending = true;
+      }
+    } else if (act.type === 'checkpoint') {
+      const recs = todayCheckpointMap[act.id] || [];
+      if (recs.length > 0) {
+        isCompleted = true;
+      } else {
+        isPending = true;
+      }
+    }
+
+    if (hoyFilter === 'pending') return isPending;
+    if (hoyFilter === 'completed') return isCompleted;
+    return true;
+  });
+
   // Calculate Summary Counts for PROGRESO tab (7 days default)
   const { currentPeriod, previousPeriod } = getComparisonPeriodDates(7, todayStr);
   let improvingCount = 0;
@@ -273,16 +398,6 @@ function MainApp() {
         {/* HOY TAB */}
         {currentTab === 'hoy' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-[#1e1e20] pb-3">
-              <div>
-                <h2 className="text-base font-bold text-[#e2e2e2] font-serif tracking-wide">Registros de Hoy</h2>
-                <p className="text-xs text-[#888888] font-light">{formatSpanishDate(todayStr)}</p>
-              </div>
-              <span className="text-[11px] font-mono uppercase tracking-wider text-[#c5a059] bg-[#c5a059]/10 px-2.5 py-1 rounded-lg border border-[#c5a059]/30">
-                Respuesta Inmediata
-              </span>
-            </div>
-
             {activeActivities.length === 0 ? (
               <EmptyState
                 title="Sin actividades activas"
@@ -291,28 +406,78 @@ function MainApp() {
                 onAction={() => setCurrentTab('actividades')}
               />
             ) : (
-              <div className="space-y-3">
-                {activeActivities.map((activity) => {
-                  const counterVal = activity.id in todayCounterMap ? todayCounterMap[activity.id] : null;
-                  const booleanVal =
-                    activity.id in todayBooleanMap ? todayBooleanMap[activity.id] : null;
-                  const checkpointRecords = todayCheckpointMap[activity.id] || [];
+              <>
+                {/* Upper Daily Summary Section */}
+                <DailySummary
+                  dateFormatted={formatSpanishDate(todayStr)}
+                  totalActive={totalActive}
+                  completedCount={completedCount}
+                  pendingCount={pendingCount}
+                  notCompliedCount={notCompliedCount}
+                  checkpointsCount={checkpointsCountToday}
+                  compliancePct={compliancePct}
+                  activeFilter={hoyFilter}
+                  onSelectFilter={setHoyFilter}
+                />
 
-                  return (
-                    <ActivityCard
-                      key={activity.id}
-                      activity={activity}
-                      counterValue={counterVal}
-                      booleanValue={booleanVal}
-                      checkpointRecords={checkpointRecords}
-                      onIncrementCounter={(actId) => handleIncrement(actId, todayStr)}
-                      onDecrementCounter={(actId) => handleDecrement(actId, todayStr)}
-                      onSetBoolean={(actId, val) => handleSetBoolean(actId, todayStr, val)}
-                      onAddCheckpoint={(actId) => handleAddCheckpoint(actId, todayStr)}
-                    />
-                  );
-                })}
-              </div>
+                {/* 7-Day Evolution Chart */}
+                <DailyActivityChart days={dayChartItems} />
+
+                {/* Activities List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-xs font-bold text-[#888888] uppercase tracking-wider font-mono">
+                      {hoyFilter === 'all'
+                        ? 'Todas las Actividades'
+                        : hoyFilter === 'pending'
+                        ? 'Actividades Pendientes'
+                        : 'Actividades Realizadas'}
+                    </h3>
+                    <span className="text-xs text-[#888888] font-mono font-medium">
+                      {filteredHoyActivities.length} {filteredHoyActivities.length === 1 ? 'actividad' : 'actividades'}
+                    </span>
+                  </div>
+
+                  {filteredHoyActivities.length === 0 ? (
+                    <div className="bg-[#131315] border border-[#1e1e20] rounded-2xl p-6 text-center space-y-2">
+                      <p className="text-sm font-semibold text-[#e2e2e2]">
+                        No hay actividades en la categoría seleccionada
+                      </p>
+                      <p className="text-xs text-[#888888]">
+                        Prueba seleccionando otro filtro como &quot;Todas&quot;.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setHoyFilter('all')}
+                        className="mt-2 px-3 py-1.5 bg-[#18181b] border border-[#28282b] hover:border-[#c5a059] text-[#c5a059] text-xs font-bold rounded-lg transition-all"
+                      >
+                        Ver todas
+                      </button>
+                    </div>
+                  ) : (
+                    filteredHoyActivities.map((activity) => {
+                      const counterVal = activity.id in todayCounterMap ? todayCounterMap[activity.id] : null;
+                      const booleanVal =
+                        activity.id in todayBooleanMap ? todayBooleanMap[activity.id] : null;
+                      const checkpointRecords = todayCheckpointMap[activity.id] || [];
+
+                      return (
+                        <ActivityCard
+                          key={activity.id}
+                          activity={activity}
+                          counterValue={counterVal}
+                          booleanValue={booleanVal}
+                          checkpointRecords={checkpointRecords}
+                          onIncrementCounter={(actId) => handleIncrement(actId, todayStr)}
+                          onDecrementCounter={(actId) => handleDecrement(actId, todayStr)}
+                          onSetBoolean={(actId, val) => handleSetBoolean(actId, todayStr, val)}
+                          onAddCheckpoint={(actId) => handleAddCheckpoint(actId, todayStr)}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
