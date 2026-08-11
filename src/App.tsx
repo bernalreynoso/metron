@@ -17,6 +17,7 @@ import { ActivityList } from './components/actividades/ActivityList';
 import { Activity, ActivityList as ActivityListType, ActivityRecord, ActiveTab } from './types';
 import { formatSpanishDate, formatShortDate, getLocalDateString, getPastNDays, getComparisonPeriodDates } from './utils/dates';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from './utils/metrics';
+import { isActivityCompletedToday } from './utils/activityStatus';
 import {
   subscribeActivities,
   createActivity,
@@ -232,29 +233,20 @@ function MainApp() {
   let checkpointsCountToday = 0;
 
   activeActivities.forEach((act) => {
-    if (act.type === 'boolean') {
-      const val = todayBooleanMap[act.id];
-      if (val === true) {
-        completedCount++;
-      } else if (val === false) {
-        notCompliedCount++;
-      } else {
-        pendingCount++;
-      }
-    } else if (act.type === 'counter') {
-      if (act.id in todayCounterMap && todayCounterMap[act.id] !== null) {
-        completedCount++;
-      } else {
-        pendingCount++;
-      }
-    } else if (act.type === 'checkpoint') {
+    const isCompleted = isActivityCompletedToday(act, todayBooleanMap, todayCheckpointMap);
+    if (isCompleted) {
+      completedCount++;
+    } else {
+      pendingCount++;
+    }
+
+    if (act.type === 'boolean' && todayBooleanMap[act.id] === false) {
+      notCompliedCount++;
+    }
+
+    if (act.type === 'checkpoint') {
       const recs = todayCheckpointMap[act.id] || [];
       checkpointsCountToday += recs.length;
-      if (recs.length > 0) {
-        completedCount++;
-      } else {
-        pendingCount++;
-      }
     }
   });
 
@@ -452,6 +444,7 @@ function MainApp() {
                 onDecrementCounter={(actId) => handleDecrement(actId, todayStr)}
                 onSetBoolean={(actId, val) => handleSetBoolean(actId, todayStr, val)}
                 onAddCheckpoint={(actId) => handleAddCheckpoint(actId, todayStr)}
+                onDeleteCheckpoint={handleDeleteCheckpoint}
                 onNavigateToConfig={() => setCurrentTab('actividades')}
               />
             )}

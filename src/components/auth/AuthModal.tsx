@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword } from '../../firebase/auth';
-import { Scale, Mail, Lock, User as UserIcon, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
@@ -91,9 +91,11 @@ export const AuthModal: React.FC = () => {
       <div className="w-full max-w-md bg-[#131315] border border-[#1e1e20] rounded-2xl p-6 sm:p-8 shadow-2xl relative z-10">
         {/* Brand Identity */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#18181b] border border-[#c5a059]/40 text-[#c5a059] mb-4 shadow-xl">
-            <Scale className="w-8 h-8" />
-          </div>
+          <img
+            src="/metron-logo.png"
+            alt="METRON Logo"
+            className="h-[80px] sm:h-[88px] md:h-[92px] w-auto object-contain mx-auto mb-4 drop-shadow-xl"
+          />
           <h1 className="font-serif tracking-[0.2em] text-2xl font-bold text-[#e2e2e2] uppercase">
             METRON
           </h1>

@@ -13,6 +13,7 @@ interface ActivityCardProps {
   onDecrementCounter: (activityId: string) => Promise<void> | void;
   onSetBoolean: (activityId: string, value: boolean | null) => void;
   onAddCheckpoint?: (activityId: string) => Promise<void> | void;
+  onDeleteCheckpoint?: (recordId: string) => Promise<void> | void;
 }
 
 export const ActivityCard: React.FC<ActivityCardProps> = ({
@@ -24,6 +25,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   onDecrementCounter,
   onSetBoolean,
   onAddCheckpoint,
+  onDeleteCheckpoint,
 }) => {
   // Local optimism state for snappy 16ms UI feedback
   const [localCounter, setLocalCounter] = useState<number | null>(counterValue);
@@ -58,15 +60,9 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
   const handleBooleanClick = (targetVal: boolean) => {
     if (localBoolean === targetVal) {
-      if (targetVal === false) {
-        // Clicking NO when already NO -> returns to "Sin registro" (null)
-        setLocalBoolean(null);
-        onSetBoolean(activity.id, null);
-      } else {
-        // Clicking SÍ when already SÍ -> remains SÍ
-        setLocalBoolean(true);
-        onSetBoolean(activity.id, true);
-      }
+      // Clicking the same option again toggles off to "Sin registro" (null)
+      setLocalBoolean(null);
+      onSetBoolean(activity.id, null);
     } else {
       setLocalBoolean(targetVal);
       onSetBoolean(activity.id, targetVal);
@@ -183,10 +179,23 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
               {checkpointRecords.map((r) => (
                 <span
                   key={r.id}
-                  className="px-2 py-0.5 rounded-md bg-[#1c1a16] border border-[#c5a059]/30 text-[#c5a059] font-mono text-[11px] font-semibold flex items-center space-x-1"
+                  className="px-2 py-0.5 rounded-md bg-[#1c1a16] border border-[#c5a059]/30 text-[#c5a059] font-mono text-[11px] font-semibold flex items-center space-x-1.5"
                 >
                   <Clock className="w-3 h-3 text-[#c5a059]/80" />
                   <span>{formatLocalTime(r.timestamp)}</span>
+                  {onDeleteCheckpoint && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteCheckpoint(r.id);
+                      }}
+                      title="Eliminar registro"
+                      className="ml-0.5 text-[#888888] hover:text-[#f87171] transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </span>
               ))}
             </div>

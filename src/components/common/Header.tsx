@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { formatSpanishDate, getLocalDateString } from '../../utils/dates';
-import { LogOut, User as UserIcon, Scale } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: string;
@@ -16,20 +16,22 @@ export const Header: React.FC<HeaderProps> = ({ currentTab }) => {
     <header className="bg-[#080809]/90 border-b border-[#1e1e20] backdrop-blur-md sticky top-0 z-30">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo & Title */}
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-lg bg-[#18181b] border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shadow-sm">
-            <Scale className="w-5 h-5" />
-          </div>
-          <div>
+        <div className="flex items-center space-x-3 min-w-0">
+          <img
+            src="/metron-logo.png"
+            alt="METRON"
+            className="h-[42px] sm:h-[48px] md:h-[52px] w-auto object-contain shrink-0"
+          />
+          <div className="min-w-0">
             <div className="flex items-center space-x-2">
-              <h1 className="font-serif tracking-[0.2em] text-lg font-bold text-[#e2e2e2] uppercase">
+              <h1 className="font-serif tracking-[0.2em] text-base sm:text-lg font-bold text-[#e2e2e2] uppercase truncate">
                 METRON
               </h1>
-              <span className="text-[10px] tracking-widest px-1.5 py-0.5 rounded border border-[#c5a059]/30 text-[#c5a059] bg-[#c5a059]/10 uppercase font-mono">
+              <span className="text-[10px] tracking-widest px-1.5 py-0.5 rounded border border-[#c5a059]/30 text-[#c5a059] bg-[#c5a059]/10 uppercase font-mono shrink-0 hidden xs:inline-block">
                 Μέτρον
               </span>
             </div>
-            <p className="text-[11px] text-[#888888] hidden sm:block font-light">
+            <p className="text-[11px] text-[#888888] hidden sm:block font-light truncate">
               Medición, observación y evolución
             </p>
           </div>
