@@ -18,9 +18,9 @@ export const Header: React.FC<HeaderProps> = ({ currentTab }) => {
         {/* Logo & Title */}
         <div className="flex items-center space-x-3 min-w-0">
           <img
-            src="/metron-logo.png"
-            alt="METRON"
-            className="h-[42px] sm:h-[48px] md:h-[52px] w-auto object-contain shrink-0"
+            src="/metron-emblem.png"
+            alt="METRON Emblem"
+            className="h-[42px] sm:h-[46px] md:h-[50px] w-[42px] sm:w-[46px] md:w-[50px] object-contain shrink-0"
           />
           <div className="min-w-0">
             <div className="flex items-center space-x-2">
