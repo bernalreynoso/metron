@@ -93,7 +93,7 @@ export const AuthModal: React.FC = () => {
         <div className="text-center mb-8">
           <img
             src="/metron-logo.png"
-            alt="METRON Logo"
+            alt="METRON"
             className="h-[80px] sm:h-[88px] md:h-[92px] w-auto object-contain mx-auto mb-4 drop-shadow-xl"
           />
           <h1 className="font-serif tracking-[0.2em] text-2xl font-bold text-[#e2e2e2] uppercase">
