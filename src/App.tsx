@@ -4,7 +4,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { Header } from './components/common/Header';
 import { Navigation } from './components/common/Navigation';
 import { EmptyState, LoadingSpinner } from './components/common/EmptyState';
-import { ActivityCard } from './components/hoy/ActivityCard';
+import { HoyView } from './components/hoy/HoyView';
 import { DailySummary } from './components/hoy/DailySummary';
 import { DailyActivityChart, DayChartItem } from './components/hoy/DailyActivityChart';
 import { SummaryCards } from './components/progreso/SummaryCards';
@@ -14,7 +14,7 @@ import { DatePickerStrip } from './components/historial/DatePickerStrip';
 import { HistoryRecordEditor } from './components/historial/HistoryRecordEditor';
 import { ActivityList } from './components/actividades/ActivityList';
 
-import { Activity, ActivityRecord, ActiveTab } from './types';
+import { Activity, ActivityList as ActivityListType, ActivityRecord, ActiveTab } from './types';
 import { formatSpanishDate, formatShortDate, getLocalDateString, getPastNDays, getComparisonPeriodDates } from './utils/dates';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from './utils/metrics';
 import {
@@ -24,6 +24,12 @@ import {
   toggleActivityActive,
   deleteActivityPermanently,
 } from './services/activityService';
+import {
+  subscribeLists,
+  createList,
+  updateList,
+  deleteListSafely,
+} from './services/listService';
 import {
   subscribeRecordsByDateRange,
   subscribeRecordsByDate,
@@ -39,6 +45,7 @@ function MainApp() {
   const [currentTab, setCurrentTab] = useState<ActiveTab>('hoy');
   
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [lists, setLists] = useState<ActivityListType[]>([]);
   const [records, setRecords] = useState<ActivityRecord[]>([]);
   const [historyRecords, setHistoryRecords] = useState<ActivityRecord[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -111,7 +118,16 @@ function MainApp() {
       }
     );
 
-    return () => unsubActivities();
+    const unsubLists = subscribeLists(
+      user.uid,
+      (l) => setLists(l),
+      (err) => console.error('Error fetching lists:', err)
+    );
+
+    return () => {
+      unsubActivities();
+      unsubLists();
+    };
   }, [user]);
 
   // Subscribe to user's records for past 185 days (supports 90-day comparison)
@@ -385,6 +401,23 @@ function MainApp() {
     await deleteActivityPermanently(user.uid, activityId);
   };
 
+  const handleCreateList = async (data: Omit<ActivityListType, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) return;
+    await createList(user.uid, data);
+  };
+
+  const handleUpdateList = async (listId: string, updates: Partial<ActivityListType>) => {
+    if (!user) return;
+    await updateList(user.uid, listId, updates);
+  };
+
+  const handleDeleteList = async (listId: string) => {
+    if (!user) return;
+    await deleteListSafely(user.uid, listId, activities, (actId, updates) =>
+      updateActivity(user.uid, actId, updates)
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#0c0c0d] bg-[radial-gradient(ellipse_at_top_right,_#1a1a1c_0%,_#0c0c0d_70%)] text-[#e2e2e2] flex flex-col font-sans pb-20 md:pb-8 selection:bg-[#c5a05933] selection:text-[#c5a059]">
       {/* App Header */}
@@ -397,7 +430,7 @@ function MainApp() {
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
         {/* HOY TAB */}
         {currentTab === 'hoy' && (
-          <div className="space-y-6">
+          <div>
             {activeActivities.length === 0 ? (
               <EmptyState
                 title="Sin actividades activas"
@@ -406,78 +439,21 @@ function MainApp() {
                 onAction={() => setCurrentTab('actividades')}
               />
             ) : (
-              <>
-                {/* Upper Daily Summary Section */}
-                <DailySummary
-                  dateFormatted={formatSpanishDate(todayStr)}
-                  totalActive={totalActive}
-                  completedCount={completedCount}
-                  pendingCount={pendingCount}
-                  notCompliedCount={notCompliedCount}
-                  checkpointsCount={checkpointsCountToday}
-                  compliancePct={compliancePct}
-                  activeFilter={hoyFilter}
-                  onSelectFilter={setHoyFilter}
-                />
-
-                {/* 7-Day Evolution Chart */}
-                <DailyActivityChart days={dayChartItems} />
-
-                {/* Activities List */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between px-1">
-                    <h3 className="text-xs font-bold text-[#888888] uppercase tracking-wider font-mono">
-                      {hoyFilter === 'all'
-                        ? 'Todas las Actividades'
-                        : hoyFilter === 'pending'
-                        ? 'Actividades Pendientes'
-                        : 'Actividades Realizadas'}
-                    </h3>
-                    <span className="text-xs text-[#888888] font-mono font-medium">
-                      {filteredHoyActivities.length} {filteredHoyActivities.length === 1 ? 'actividad' : 'actividades'}
-                    </span>
-                  </div>
-
-                  {filteredHoyActivities.length === 0 ? (
-                    <div className="bg-[#131315] border border-[#1e1e20] rounded-2xl p-6 text-center space-y-2">
-                      <p className="text-sm font-semibold text-[#e2e2e2]">
-                        No hay actividades en la categoría seleccionada
-                      </p>
-                      <p className="text-xs text-[#888888]">
-                        Prueba seleccionando otro filtro como &quot;Todas&quot;.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setHoyFilter('all')}
-                        className="mt-2 px-3 py-1.5 bg-[#18181b] border border-[#28282b] hover:border-[#c5a059] text-[#c5a059] text-xs font-bold rounded-lg transition-all"
-                      >
-                        Ver todas
-                      </button>
-                    </div>
-                  ) : (
-                    filteredHoyActivities.map((activity) => {
-                      const counterVal = activity.id in todayCounterMap ? todayCounterMap[activity.id] : null;
-                      const booleanVal =
-                        activity.id in todayBooleanMap ? todayBooleanMap[activity.id] : null;
-                      const checkpointRecords = todayCheckpointMap[activity.id] || [];
-
-                      return (
-                        <ActivityCard
-                          key={activity.id}
-                          activity={activity}
-                          counterValue={counterVal}
-                          booleanValue={booleanVal}
-                          checkpointRecords={checkpointRecords}
-                          onIncrementCounter={(actId) => handleIncrement(actId, todayStr)}
-                          onDecrementCounter={(actId) => handleDecrement(actId, todayStr)}
-                          onSetBoolean={(actId, val) => handleSetBoolean(actId, todayStr, val)}
-                          onAddCheckpoint={(actId) => handleAddCheckpoint(actId, todayStr)}
-                        />
-                      );
-                    })
-                  )}
-                </div>
-              </>
+              <HoyView
+                activities={activities}
+                lists={lists}
+                records={records}
+                todayStr={todayStr}
+                formattedTodayDate={formatSpanishDate(todayStr)}
+                todayCounterMap={todayCounterMap}
+                todayBooleanMap={todayBooleanMap}
+                todayCheckpointMap={todayCheckpointMap}
+                onIncrementCounter={(actId) => handleIncrement(actId, todayStr)}
+                onDecrementCounter={(actId) => handleDecrement(actId, todayStr)}
+                onSetBoolean={(actId, val) => handleSetBoolean(actId, todayStr, val)}
+                onAddCheckpoint={(actId) => handleAddCheckpoint(actId, todayStr)}
+                onNavigateToConfig={() => setCurrentTab('actividades')}
+              />
             )}
           </div>
         )}
@@ -485,6 +461,23 @@ function MainApp() {
         {/* PROGRESO TAB */}
         {currentTab === 'progreso' && (
           <div className="space-y-6">
+            {/* Daily Summary */}
+            <DailySummary
+              dateFormatted={formatSpanishDate(todayStr)}
+              totalActive={totalActive}
+              completedCount={completedCount}
+              pendingCount={pendingCount}
+              notCompliedCount={notCompliedCount}
+              checkpointsCount={checkpointsCountToday}
+              compliancePct={compliancePct}
+              activeFilter={hoyFilter}
+              onSelectFilter={setHoyFilter}
+            />
+
+            {/* 7-Day Evolution Chart */}
+            <DailyActivityChart days={dayChartItems} />
+
+            {/* Overall Trends & Metrics */}
             <SummaryCards
               improvingCount={improvingCount}
               worseningCount={worseningCount}
@@ -520,7 +513,7 @@ function MainApp() {
 
             <HistoryRecordEditor
               selectedDate={historyDate}
-              activities={activities.filter((a) => a.active || historyRecords.some((r) => r.activityId === a.id))}
+              activities={activities}
               records={historyRecords}
               onIncrementCounter={handleIncrement}
               onDecrementCounter={handleDecrement}
@@ -535,11 +528,15 @@ function MainApp() {
         {currentTab === 'actividades' && (
           <ActivityList
             activities={activities}
+            lists={lists}
             records={records}
             onCreateActivity={handleCreateActivity}
             onUpdateActivity={handleUpdateActivity}
             onToggleActive={handleToggleActive}
             onDeleteActivity={handleDeleteActivityPermanently}
+            onCreateList={handleCreateList}
+            onUpdateList={handleUpdateList}
+            onDeleteList={handleDeleteList}
           />
         )}
       </main>

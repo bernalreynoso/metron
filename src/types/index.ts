@@ -10,6 +10,16 @@ export type ActivityDirection =
   | 'later'
   | 'neutral';
 
+export interface ActivityList {
+  id: string;
+  name: string;
+  description?: string;
+  icon: string;
+  order: number;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export interface Activity {
   id: string;
   name: string;
@@ -18,6 +28,7 @@ export interface Activity {
   type: ActivityType;
   direction: ActivityDirection;
   checkpointMode?: CheckpointMode;
+  listId?: string | null;
   active: boolean;
   order: number;
   createdAt: any;

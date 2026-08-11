@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Activity, ActivityDirection, ActivityType, CheckpointMode } from '../../types';
+import { Activity, ActivityDirection, ActivityList, ActivityType, CheckpointMode } from '../../types';
 import { ICON_CATEGORIES, IconRenderer } from '../common/IconRenderer';
 import { X, Save } from 'lucide-react';
 
 interface ActivityFormModalProps {
   initialActivity?: Activity | null;
+  lists?: ActivityList[];
   hasRecords?: boolean;
   onSave: (activityData: Omit<Activity, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   onClose: () => void;
@@ -12,6 +13,7 @@ interface ActivityFormModalProps {
 
 export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   initialActivity,
+  lists = [],
   hasRecords = false,
   onSave,
   onClose,
@@ -19,6 +21,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   const [name, setName] = useState(initialActivity?.name || '');
   const [description, setDescription] = useState(initialActivity?.description || '');
   const [icon, setIcon] = useState(initialActivity?.icon || 'Clock');
+  const [listId, setListId] = useState<string>(initialActivity?.listId || '');
   const [type, setType] = useState<ActivityType>(initialActivity?.type || 'counter');
   const [checkpointMode, setCheckpointMode] = useState<CheckpointMode>(
     initialActivity?.checkpointMode || 'single'
@@ -62,6 +65,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
         icon,
         type,
         direction,
+        listId: listId ? listId : null,
         active: initialActivity ? initialActivity.active : true,
         order: initialActivity ? initialActivity.order : Date.now(),
       };
@@ -135,6 +139,25 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-[#18181b] border border-[#28282b] rounded-lg py-2.5 px-3 text-sm text-[#e2e2e2] placeholder-[#666666] focus:outline-none focus:border-[#c5a059]"
             />
+          </div>
+
+          {/* List Selector */}
+          <div>
+            <label className="block text-xs font-semibold text-[#888888] mb-1">
+              Lista de actividades (Agrupador)
+            </label>
+            <select
+              value={listId}
+              onChange={(e) => setListId(e.target.value)}
+              className="w-full bg-[#18181b] border border-[#28282b] rounded-lg py-2.5 px-3 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#c5a059]"
+            >
+              <option value="">Sin lista</option>
+              {lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Type Selector */}

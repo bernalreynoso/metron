@@ -18,20 +18,24 @@ export interface IconCategory {
 
 export const ICON_CATEGORIES: IconCategory[] = [
   {
-    category: 'TIEMPO / CHECKPOINT',
-    icons: ['Clock', 'Timer', 'AlarmClock', 'Hourglass', 'Calendar', 'Sunrise', 'Sunset', 'LogIn', 'LogOut', 'CheckCircle2', 'History', 'Watch'],
+    category: 'HIGIENE',
+    icons: ['ShowerHead', 'Bath', 'Sparkles', 'Droplets', 'Smile', 'Pipette'],
+  },
+  {
+    category: 'TRANSPORTE',
+    icons: ['Subway', 'Bus', 'Train', 'Car', 'Bike', 'Footprints', 'Compass'],
+  },
+  {
+    category: 'CASA',
+    icons: ['Home', 'Bed', 'Utensils', 'UtensilsCrossed', 'Sparkles', 'Shirt', 'Flame'],
   },
   {
     category: 'ALIMENTACIÓN',
-    icons: ['CupSoda', 'Coffee', 'Droplets', 'Utensils', 'GlassWater', 'Apple', 'Pizza', 'Wine'],
-  },
-  {
-    category: 'SUEÑO',
-    icons: ['Moon', 'Bed', 'Sun', 'AlarmClock', 'Sunrise', 'Sunset'],
+    icons: ['GlassWater', 'CupSoda', 'Coffee', 'Utensils', 'Apple', 'Pizza', 'UtensilsCrossed'],
   },
   {
     category: 'TRABAJO',
-    icons: ['Building', 'Briefcase', 'Laptop', 'Clock', 'LogIn', 'LogOut', 'FileText', 'CheckSquare'],
+    icons: ['Building', 'Building2', 'Briefcase', 'Laptop', 'FileText', 'Users', 'Clock', 'CheckSquare'],
   },
   {
     category: 'EJERCICIO',
@@ -42,8 +46,12 @@ export const ICON_CATEGORIES: IconCategory[] = [
     icons: ['BookOpen', 'Brain', 'GraduationCap', 'School', 'Pencil', 'Lightbulb'],
   },
   {
+    category: 'TIEMPO / RUTINA',
+    icons: ['Clock', 'Timer', 'AlarmClock', 'Hourglass', 'Calendar', 'Sunrise', 'Sunset', 'LogIn', 'LogOut', 'CheckCircle2', 'History', 'Watch'],
+  },
+  {
     category: 'VIDA DIARIA',
-    icons: ['Home', 'Car', 'ShoppingBag', 'Sparkles', 'Smile', 'Shield', 'Tv', 'DollarSign', 'Target', 'CircleDot'],
+    icons: ['Home', 'Car', 'ShoppingBag', 'Sparkles', 'Smile', 'Shield', 'Tv', 'DollarSign', 'Target', 'CircleDot', 'Moon', 'Sun'],
   },
 ];
 
