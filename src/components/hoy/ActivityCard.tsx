@@ -205,6 +205,11 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 <Clock className="w-4 h-4 stroke-[2.5]" />
                 <span>REGISTRAR HORA</span>
               </button>
+            ) : (activity.checkpointMode || 'single') === 'single' ? (
+              <div className="px-3.5 py-2 bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d] font-bold text-xs rounded-lg flex items-center space-x-1.5">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                <span>REGISTRADO HOY</span>
+              </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <button

@@ -56,20 +56,30 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
     setError(null);
 
     try {
-      await onSave({
+      const activityData: Omit<Activity, 'id' | 'createdAt' | 'updatedAt'> = {
         name: name.trim(),
         description: description.trim(),
         icon,
         type,
         direction,
-        checkpointMode: type === 'checkpoint' ? checkpointMode : undefined,
         active: initialActivity ? initialActivity.active : true,
         order: initialActivity ? initialActivity.order : Date.now(),
-      });
+      };
+
+      if (type === 'checkpoint') {
+        activityData.checkpointMode = checkpointMode;
+      }
+
+      await onSave(activityData);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving activity:', err);
-      setError('Error al guardar la actividad');
+      const technicalMsg = err?.code
+        ? ` [Código: ${err.code} - ${err.message}]`
+        : err?.message
+        ? ` [Mensaje: ${err.message}]`
+        : '';
+      setError(`Error al guardar la actividad${technicalMsg}`);
     } finally {
       setLoading(false);
     }
