@@ -90,18 +90,12 @@ export const AuthModal: React.FC = () => {
 
       <div className="w-full max-w-md bg-[#131315] border border-[#1e1e20] rounded-2xl p-6 sm:p-8 shadow-2xl relative z-10">
         {/* Brand Identity */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <img
             src="/metron-logo.png"
             alt="METRON"
-            className="h-[80px] sm:h-[88px] md:h-[92px] w-auto object-contain mx-auto mb-4 drop-shadow-xl"
+            className="h-[80px] sm:h-[88px] md:h-[92px] w-auto object-contain mx-auto drop-shadow-xl"
           />
-          <h1 className="font-serif tracking-[0.2em] text-2xl font-bold text-[#e2e2e2] uppercase">
-            METRON
-          </h1>
-          <p className="text-xs text-[#888888] mt-1 uppercase tracking-widest font-light">
-            Medición • Observación • Evolución
-          </p>
         </div>
 
         {/* Form Container */}
