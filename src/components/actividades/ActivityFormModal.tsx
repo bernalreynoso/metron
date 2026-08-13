@@ -227,15 +227,21 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
               <label className="block text-xs font-semibold text-[#888888] mb-1.5">
                 Registros por día
               </label>
+              {hasRecords && initialActivity && (
+                <p className="text-[11px] text-[#c5a059] mb-2 font-light">
+                  El modo de registros por día no puede cambiarse porque ya tiene registros históricos.
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setCheckpointMode('single')}
                   className={`p-3 rounded-xl border text-left transition-all ${
                     checkpointMode === 'single'
                       ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   <p className="text-xs font-bold font-mono">○ Uno</p>
                   <p className="text-[10px] text-[#888888] mt-1 font-light leading-tight">
@@ -245,12 +251,13 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
 
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setCheckpointMode('multiple')}
                   className={`p-3 rounded-xl border text-left transition-all ${
                     checkpointMode === 'multiple'
                       ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   <p className="text-xs font-bold font-mono">○ Varios</p>
                   <p className="text-[10px] text-[#888888] mt-1 font-light leading-tight">
@@ -266,40 +273,48 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
             <label className="block text-xs font-semibold text-[#888888] mb-1.5">
               Dirección de mejora
             </label>
+            {hasRecords && initialActivity && (
+              <p className="text-[11px] text-[#c5a059] mb-2 font-light">
+                La dirección de mejora no puede cambiarse porque ya tiene registros históricos.
+              </p>
+            )}
             {type === 'checkpoint' ? (
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setDirection('earlier')}
                   className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition-all ${
                     direction === 'earlier'
                       ? 'bg-amber-950/60 border-amber-800 text-amber-400'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   Más temprano
                 </button>
 
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setDirection('later')}
                   className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition-all ${
                     direction === 'later'
                       ? 'bg-indigo-950/60 border-indigo-800 text-indigo-400'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   Más tarde
                 </button>
 
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setDirection('neutral')}
                   className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition-all ${
                     direction === 'neutral'
                       ? 'bg-slate-800 border-slate-600 text-slate-200'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   Neutral
                 </button>
@@ -308,36 +323,39 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setDirection('increase')}
                   className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition-all ${
                     direction === 'increase'
                       ? 'bg-[#1a2e1a] border-[#2d4a2d] text-[#4ade80]'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   Aumentar
                 </button>
 
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setDirection('decrease')}
                   className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition-all ${
                     direction === 'decrease'
                       ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   Reducir
                 </button>
 
                 <button
                   type="button"
+                  disabled={hasRecords && !!initialActivity}
                   onClick={() => setDirection('compliance')}
                   className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition-all ${
                     direction === 'compliance'
                       ? 'bg-sky-950/60 border-sky-800 text-sky-400'
                       : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  }`}
+                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   Cumplir
                 </button>

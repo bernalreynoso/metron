@@ -15,26 +15,35 @@ export async function syncUserProfile(user: User) {
   try {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
+    const detectedTimezone =
+      typeof Intl !== 'undefined' && Intl.DateTimeFormat
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+        : 'UTC';
 
     if (!userSnap.exists()) {
       await setDoc(userRef, {
         displayName: user.displayName || user.email?.split('@')[0] || 'Usuario',
         email: user.email,
         photoURL: user.photoURL || null,
+        timezone: detectedTimezone,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
     } else {
-      await setDoc(
-        userRef,
-        {
-          displayName: user.displayName || userSnap.data()?.displayName || 'Usuario',
-          email: user.email,
-          photoURL: user.photoURL || userSnap.data()?.photoURL || null,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      const data = userSnap.data();
+      const updates: Record<string, any> = {
+        displayName: user.displayName || data?.displayName || 'Usuario',
+        email: user.email,
+        photoURL: user.photoURL || data?.photoURL || null,
+        updatedAt: serverTimestamp(),
+      };
+
+      // Si el usuario aún no tiene guardada una zona horaria, se establece la detectada
+      if (!data?.timezone) {
+        updates.timezone = detectedTimezone;
+      }
+
+      await setDoc(userRef, updates, { merge: true });
     }
   } catch (err: any) {
     console.error('Firestore profile sync error:', {

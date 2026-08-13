@@ -51,6 +51,7 @@ export interface UserProfile {
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
+  timezone?: string;
   createdAt?: any;
   updatedAt?: any;
 }
