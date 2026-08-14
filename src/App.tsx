@@ -245,7 +245,7 @@ function MainApp() {
   let checkpointsCountToday = 0;
 
   activeActivities.forEach((act) => {
-    const isCompleted = isActivityCompletedToday(act, todayBooleanMap, todayCheckpointMap, todayCounterMap);
+    const isCompleted = isActivityCompletedToday(act, todayBooleanMap, todayCheckpointMap);
     if (isCompleted) {
       completedCount++;
     } else {
