@@ -3,9 +3,29 @@
  */
 
 /**
- * Returns YYYY-MM-DD for a given Date in the user's LOCAL timezone.
+ * Returns YYYY-MM-DD for a given Date in the specified timezone or user's LOCAL timezone.
  */
-export function getLocalDateString(date: Date = new Date()): string {
+export function getLocalDateString(date: Date = new Date(), timezone?: string): string {
+  if (timezone) {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const parts = formatter.formatToParts(date);
+      const year = parts.find((p) => p.type === 'year')?.value;
+      const month = parts.find((p) => p.type === 'month')?.value;
+      const day = parts.find((p) => p.type === 'day')?.value;
+      if (year && month && day) {
+        return `${year}-${month}-${day}`;
+      }
+    } catch (e) {
+      console.warn(`Invalid timezone "${timezone}", falling back to local:`, e);
+    }
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -38,14 +58,18 @@ export function formatSpanishDate(dateStr: string): string {
 /**
  * Returns an array of YYYY-MM-DD date strings for the past N days ending at `endDateStr`.
  */
-export function getPastNDays(n: number, endDateStr: string = getLocalDateString()): string[] {
+export function getPastNDays(
+  n: number,
+  endDateStr: string = getLocalDateString(),
+  timezone?: string
+): string[] {
   const result: string[] = [];
   const baseDate = parseLocalDate(endDateStr);
 
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(baseDate);
     d.setDate(baseDate.getDate() - i);
-    result.push(getLocalDateString(d));
+    result.push(getLocalDateString(d, timezone));
   }
   return result;
 }
@@ -56,15 +80,20 @@ export function getPastNDays(n: number, endDateStr: string = getLocalDateString(
  */
 export function getComparisonPeriodDates(
   periodDays: number,
-  endDateStr: string = getLocalDateString()
+  endDateStr: string = getLocalDateString(),
+  timezone?: string
 ): { currentPeriod: string[]; previousPeriod: string[] } {
-  const currentPeriod = getPastNDays(periodDays, endDateStr);
+  const currentPeriod = getPastNDays(periodDays, endDateStr, timezone);
   
   const baseDate = parseLocalDate(endDateStr);
   const prevPeriodEndDate = new Date(baseDate);
   prevPeriodEndDate.setDate(baseDate.getDate() - periodDays);
   
-  const previousPeriod = getPastNDays(periodDays, getLocalDateString(prevPeriodEndDate));
+  const previousPeriod = getPastNDays(
+    periodDays,
+    getLocalDateString(prevPeriodEndDate, timezone),
+    timezone
+  );
   
   return { currentPeriod, previousPeriod };
 }
@@ -106,29 +135,67 @@ export function parseTimestampToDate(timestampOrDate: any): Date {
 /**
  * Returns time in minutes from midnight (0 - 1439) for a given timestamp or Date.
  */
-export function getTimeInMinutesFromMidnight(timestampOrDate: any): number {
+export function getTimeInMinutesFromMidnight(timestampOrDate: any, timezone?: string): number {
   const date = parseTimestampToDate(timestampOrDate);
+  if (timezone) {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      });
+      const parts = formatter.formatToParts(date);
+      const hourStr = parts.find((p) => p.type === 'hour')?.value ?? '0';
+      const minuteStr = parts.find((p) => p.type === 'minute')?.value ?? '0';
+      const hours = parseInt(hourStr, 10) % 24;
+      const minutes = parseInt(minuteStr, 10);
+      return hours * 60 + minutes;
+    } catch (e) {
+      console.warn(`Invalid timezone "${timezone}", falling back to local:`, e);
+    }
+  }
   return date.getHours() * 60 + date.getMinutes();
 }
 
 /**
  * Formats a timestamp into local readable time (e.g. "4:03 PM" or "16:03").
  */
-export function formatLocalTime(timestampOrDate: any): string {
+export function formatLocalTime(timestampOrDate: any, timezone?: string): string {
   if (!timestampOrDate) return 'Sin registrar';
   const date = parseTimestampToDate(timestampOrDate);
-  return date.toLocaleTimeString('es-ES', {
+  const options: Intl.DateTimeFormatOptions = {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  });
+    ...(timezone ? { timeZone: timezone } : {}),
+  };
+  return date.toLocaleTimeString('es-ES', options);
 }
 
 /**
  * Formats 24h time string HH:mm for HTML time input.
  */
-export function formatTimeForInput(timestampOrDate: any): string {
+export function formatTimeForInput(timestampOrDate: any, timezone?: string): string {
   const date = parseTimestampToDate(timestampOrDate);
+  if (timezone) {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        hourCycle: 'h23',
+      });
+      const parts = formatter.formatToParts(date);
+      const hours = parts.find((p) => p.type === 'hour')?.value.padStart(2, '0') ?? '00';
+      const minutes = parts.find((p) => p.type === 'minute')?.value.padStart(2, '0') ?? '00';
+      return `${hours}:${minutes}`;
+    } catch (e) {
+      console.warn(`Invalid timezone "${timezone}", falling back to local:`, e);
+    }
+  }
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;

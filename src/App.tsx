@@ -42,7 +42,7 @@ import {
 } from './services/recordService';
 
 function MainApp() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, timezone, loading: authLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<ActiveTab>('hoy');
   
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -53,7 +53,12 @@ function MainApp() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   // Today's logical local date string YYYY-MM-DD
-  const [todayStr, setTodayStr] = useState<string>(getLocalDateString());
+  const [todayStr, setTodayStr] = useState<string>(() => getLocalDateString(new Date(), timezone));
+
+  // Sync todayStr when timezone is loaded/updated
+  useEffect(() => {
+    setTodayStr(getLocalDateString(new Date(), timezone));
+  }, [timezone]);
 
   // Filter for HOY tab: 'all' | 'pending' | 'completed'
   const [hoyFilter, setHoyFilter] = useState<'all' | 'pending' | 'completed'>('all');
@@ -61,7 +66,7 @@ function MainApp() {
   // Automatic Day Change Detection
   useEffect(() => {
     const checkDateChange = () => {
-      const nowStr = getLocalDateString();
+      const nowStr = getLocalDateString(new Date(), timezone);
       if (nowStr !== todayStr) {
         setTodayStr(nowStr);
       }
@@ -76,15 +81,15 @@ function MainApp() {
       document.removeEventListener('visibilitychange', checkDateChange);
       clearInterval(timer);
     };
-  }, [todayStr]);
+  }, [todayStr, timezone]);
 
   // Re-verify date string on tab switch
   useEffect(() => {
-    const nowStr = getLocalDateString();
+    const nowStr = getLocalDateString(new Date(), timezone);
     if (nowStr !== todayStr) {
       setTodayStr(nowStr);
     }
-  }, [currentTab]);
+  }, [currentTab, timezone]);
 
   // Selected date for HISTORIAL tab
   const [historyDate, setHistoryDate] = useState<string>(todayStr);
@@ -135,7 +140,7 @@ function MainApp() {
   useEffect(() => {
     if (!user) return;
 
-    const past180Days = getPastNDays(185, todayStr);
+    const past180Days = getPastNDays(185, todayStr, timezone);
     const startDate = past180Days[0];
     const endDate = todayStr;
 
@@ -153,7 +158,7 @@ function MainApp() {
     );
 
     return () => unsubRecords();
-  }, [user, todayStr]);
+  }, [user, todayStr, timezone]);
 
   // Subscribe directly to records for the selected historyDate in HISTORIAL tab
   useEffect(() => {
@@ -254,7 +259,7 @@ function MainApp() {
   const compliancePct = totalActive > 0 ? Math.round((completedCount / totalActive) * 100) : 0;
 
   // Past 7 days (including today) for Daily Evolution Chart
-  const past7Days = getPastNDays(7, todayStr);
+  const past7Days = getPastNDays(7, todayStr, timezone);
   const dayChartItems: DayChartItem[] = past7Days.map((dStr) => {
     const isToday = dStr === todayStr;
     const dayLabel = isToday ? 'Hoy' : formatShortDate(dStr);
@@ -310,7 +315,7 @@ function MainApp() {
   });
 
   // Calculate Summary Counts for PROGRESO tab (7 days default)
-  const { currentPeriod, previousPeriod } = getComparisonPeriodDates(7, todayStr);
+  const { currentPeriod, previousPeriod } = getComparisonPeriodDates(7, todayStr, timezone);
   let improvingCount = 0;
   let worseningCount = 0;
   let stableCount = 0;
