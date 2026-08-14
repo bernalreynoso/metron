@@ -145,6 +145,50 @@ export async function addCounterDecrement(userId: string, activityId: string, da
 }
 
 /**
+ * Sets an explicit counter record with value 0 for a specific activity and date.
+ * Uses a deterministic doc ID: `${activityId}_${date}_zero`.
+ * If the record already exists, updates it without duplicating.
+ */
+export async function setCounterZeroRecord(
+  userId: string,
+  activityId: string,
+  date: string
+) {
+  const docId = `${activityId}_${date}_zero`;
+  const docRef = doc(db, 'users', userId, 'records', docId);
+
+  const snap = await getDoc(docRef);
+  if (snap.exists()) {
+    return await updateDoc(docRef, {
+      value: 0,
+      updatedAt: serverTimestamp(),
+    });
+  } else {
+    return await setDoc(docRef, {
+      activityId,
+      date,
+      type: 'counter',
+      value: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
+
+/**
+ * Clears the explicit counter record with value 0 for a specific activity and date if it exists.
+ */
+export async function clearCounterZeroRecord(
+  userId: string,
+  activityId: string,
+  date: string
+) {
+  const docId = `${activityId}_${date}_zero`;
+  const docRef = doc(db, 'users', userId, 'records', docId);
+  return await deleteDoc(docRef);
+}
+
+/**
  * Sets boolean record value for a specific activity and date using a deterministic doc ID.
  * Document ID format: `${activityId}_${date}`
  * If value is null, deletes record (returns to "unrecorded" / "Sin registro").

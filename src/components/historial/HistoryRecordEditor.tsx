@@ -11,6 +11,8 @@ interface HistoryRecordEditorProps {
   records: ActivityRecord[];
   onIncrementCounter: (activityId: string, date: string) => void;
   onDecrementCounter: (activityId: string, date: string) => void;
+  onRegisterCounterZero?: (activityId: string, date: string) => Promise<void> | void;
+  onClearCounterZero?: (activityId: string, date: string) => Promise<void> | void;
   onSetBoolean: (activityId: string, date: string, value: boolean | null) => void;
   onAddCheckpoint: (activityId: string, date: string) => Promise<void>;
   onDeleteCheckpoint?: (recordId: string) => Promise<void>;
@@ -22,6 +24,8 @@ export const HistoryRecordEditor: React.FC<HistoryRecordEditorProps> = ({
   records,
   onIncrementCounter,
   onDecrementCounter,
+  onRegisterCounterZero,
+  onClearCounterZero,
   onSetBoolean,
   onAddCheckpoint,
   onDeleteCheckpoint,
@@ -91,6 +95,8 @@ export const HistoryRecordEditor: React.FC<HistoryRecordEditorProps> = ({
                   checkpointRecords={checkpointRecords}
                   onIncrementCounter={(actId) => onIncrementCounter(actId, selectedDate)}
                   onDecrementCounter={(actId) => onDecrementCounter(actId, selectedDate)}
+                  onRegisterCounterZero={onRegisterCounterZero ? (actId) => onRegisterCounterZero(actId, selectedDate) : undefined}
+                  onClearCounterZero={onClearCounterZero ? (actId) => onClearCounterZero(actId, selectedDate) : undefined}
                   onSetBoolean={(actId, val) => onSetBoolean(actId, selectedDate, val)}
                   onAddCheckpoint={(actId) => onAddCheckpoint(actId, selectedDate)}
                 />

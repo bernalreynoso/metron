@@ -26,6 +26,8 @@ interface HoyViewProps {
   todayCheckpointMap: Record<string, ActivityRecord[]>;
   onIncrementCounter: (actId: string) => void;
   onDecrementCounter: (actId: string) => void;
+  onRegisterCounterZero?: (actId: string) => Promise<void> | void;
+  onClearCounterZero?: (actId: string) => Promise<void> | void;
   onSetBoolean: (actId: string, val: boolean | null) => void;
   onAddCheckpoint: (actId: string) => void;
   onDeleteCheckpoint?: (recordId: string) => void;
@@ -43,6 +45,8 @@ export const HoyView: React.FC<HoyViewProps> = ({
   todayCheckpointMap,
   onIncrementCounter,
   onDecrementCounter,
+  onRegisterCounterZero,
+  onClearCounterZero,
   onSetBoolean,
   onAddCheckpoint,
   onDeleteCheckpoint,
@@ -456,6 +460,8 @@ export const HoyView: React.FC<HoyViewProps> = ({
                       checkpointRecords={checkpointRecords}
                       onIncrementCounter={() => onIncrementCounter(activity.id)}
                       onDecrementCounter={() => onDecrementCounter(activity.id)}
+                      onRegisterCounterZero={onRegisterCounterZero ? () => onRegisterCounterZero(activity.id) : undefined}
+                      onClearCounterZero={onClearCounterZero ? () => onClearCounterZero(activity.id) : undefined}
                       onSetBoolean={(val) => onSetBoolean(activity.id, val)}
                       onAddCheckpoint={() => onAddCheckpoint(activity.id)}
                       onDeleteCheckpoint={onDeleteCheckpoint}
@@ -535,6 +541,8 @@ export const HoyView: React.FC<HoyViewProps> = ({
                       checkpointRecords={checkpointRecords}
                       onIncrementCounter={() => onIncrementCounter(activity.id)}
                       onDecrementCounter={() => onDecrementCounter(activity.id)}
+                      onRegisterCounterZero={onRegisterCounterZero ? () => onRegisterCounterZero(activity.id) : undefined}
+                      onClearCounterZero={onClearCounterZero ? () => onClearCounterZero(activity.id) : undefined}
                       onSetBoolean={(val) => onSetBoolean(activity.id, val)}
                       onAddCheckpoint={() => onAddCheckpoint(activity.id)}
                       onDeleteCheckpoint={onDeleteCheckpoint}

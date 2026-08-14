@@ -12,6 +12,8 @@ interface ActivityCardProps {
   checkpointRecords?: ActivityRecord[];
   onIncrementCounter: (activityId: string) => void;
   onDecrementCounter: (activityId: string) => Promise<void> | void;
+  onRegisterCounterZero?: (activityId: string) => Promise<void> | void;
+  onClearCounterZero?: (activityId: string) => Promise<void> | void;
   onSetBoolean: (activityId: string, value: boolean | null) => void;
   onAddCheckpoint?: (activityId: string) => Promise<void> | void;
   onDeleteCheckpoint?: (recordId: string) => Promise<void> | void;
@@ -24,6 +26,8 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   checkpointRecords = [],
   onIncrementCounter,
   onDecrementCounter,
+  onRegisterCounterZero,
+  onClearCounterZero,
   onSetBoolean,
   onAddCheckpoint,
   onDeleteCheckpoint,
@@ -57,6 +61,20 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
       await onDecrementCounter(activity.id);
     } finally {
       setIsDecrementing(false);
+    }
+  };
+
+  const handleRegisterZero = async () => {
+    setLocalCounter(0);
+    if (onRegisterCounterZero) {
+      await onRegisterCounterZero(activity.id);
+    }
+  };
+
+  const handleClearZero = async () => {
+    setLocalCounter(null);
+    if (onClearCounterZero) {
+      await onClearCounterZero(activity.id);
     }
   };
 
@@ -208,33 +226,57 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
       {/* Interactive Controls */}
       <div className="flex items-center justify-end">
         {activity.type === 'counter' ? (
-          <div className="flex items-center space-x-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">
-            <button
-              id={`minus-btn-${activity.id}`}
-              onClick={handleMinus}
-              disabled={localCounter === null || localCounter <= 0 || isDecrementing}
-              aria-label={`Disminuir ${activity.name}`}
-              className="w-10 h-10 rounded-lg bg-[#18181b] hover:bg-[#222225] border border-[#28282b] flex items-center justify-center text-[#e2e2e2] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <Minus className="w-4 h-4" />
-            </button>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center space-x-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">
+              <button
+                id={`minus-btn-${activity.id}`}
+                onClick={handleMinus}
+                disabled={localCounter === null || localCounter <= 0 || isDecrementing}
+                aria-label={`Disminuir ${activity.name}`}
+                className="w-10 h-10 rounded-lg bg-[#18181b] hover:bg-[#222225] border border-[#28282b] flex items-center justify-center text-[#e2e2e2] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
 
-            <span className="min-w-20 px-1 text-center font-mono text-[#c5a059] flex items-center justify-center">
-              {localCounter === null ? (
-                <span className="text-[11px] font-semibold text-[#888888]">Sin registro</span>
-              ) : (
-                <span className="text-lg font-bold">{localCounter}</span>
-              )}
-            </span>
+              <span className="min-w-20 px-1 text-center font-mono text-[#c5a059] flex items-center justify-center">
+                {localCounter === null ? (
+                  <span className="text-[11px] font-semibold text-[#888888]">Sin registro</span>
+                ) : (
+                  <span className="text-lg font-bold">{localCounter}</span>
+                )}
+              </span>
 
-            <button
-              id={`plus-btn-${activity.id}`}
-              onClick={handlePlus}
-              aria-label={`Aumentar ${activity.name}`}
-              className="w-10 h-10 rounded-lg bg-[#c5a059] hover:bg-[#d4b068] text-[#0c0c0d] font-bold flex items-center justify-center active:scale-95 shadow-md transition-all"
-            >
-              <Plus className="w-5 h-5 stroke-[2.5]" />
-            </button>
+              <button
+                id={`plus-btn-${activity.id}`}
+                onClick={handlePlus}
+                aria-label={`Aumentar ${activity.name}`}
+                className="w-10 h-10 rounded-lg bg-[#c5a059] hover:bg-[#d4b068] text-[#0c0c0d] font-bold flex items-center justify-center active:scale-95 shadow-md transition-all"
+              >
+                <Plus className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {localCounter === null && (
+              <button
+                type="button"
+                id={`zero-btn-${activity.id}`}
+                onClick={handleRegisterZero}
+                className="text-[11px] text-[#888888] hover:text-[#c5a059] transition-colors pr-1 underline underline-offset-2"
+              >
+                Registrar 0 hoy
+              </button>
+            )}
+
+            {localCounter === 0 && (
+              <button
+                type="button"
+                id={`clear-zero-btn-${activity.id}`}
+                onClick={handleClearZero}
+                className="text-[11px] text-[#888888] hover:text-[#f87171] transition-colors pr-1 underline underline-offset-2"
+              >
+                Quitar registro
+              </button>
+            )}
           </div>
         ) : activity.type === 'boolean' ? (
           <div className="flex items-center space-x-2 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">

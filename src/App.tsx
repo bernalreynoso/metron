@@ -36,6 +36,8 @@ import {
   subscribeRecordsByDate,
   addCounterIncrement,
   addCounterDecrement,
+  setCounterZeroRecord,
+  clearCounterZeroRecord,
   setBooleanRecord,
   addCheckpointRecord,
   deleteCheckpointRecord,
@@ -363,6 +365,16 @@ function MainApp() {
     addCounterDecrement(user.uid, activityId, dateStr);
   };
 
+  const handleRegisterCounterZero = async (activityId: string, dateStr: string = todayStr) => {
+    if (!user) return;
+    await setCounterZeroRecord(user.uid, activityId, dateStr);
+  };
+
+  const handleClearCounterZero = async (activityId: string, dateStr: string = todayStr) => {
+    if (!user) return;
+    await clearCounterZeroRecord(user.uid, activityId, dateStr);
+  };
+
   const handleSetBoolean = (activityId: string, dateStr: string = todayStr, val: boolean | null) => {
     if (!user) return;
     setBooleanRecord(user.uid, activityId, dateStr, val);
@@ -447,6 +459,8 @@ function MainApp() {
                 todayCheckpointMap={todayCheckpointMap}
                 onIncrementCounter={(actId) => handleIncrement(actId, todayStr)}
                 onDecrementCounter={(actId) => handleDecrement(actId, todayStr)}
+                onRegisterCounterZero={(actId) => handleRegisterCounterZero(actId, todayStr)}
+                onClearCounterZero={(actId) => handleClearCounterZero(actId, todayStr)}
                 onSetBoolean={(actId, val) => handleSetBoolean(actId, todayStr, val)}
                 onAddCheckpoint={(actId) => handleAddCheckpoint(actId, todayStr)}
                 onDeleteCheckpoint={handleDeleteCheckpoint}
@@ -515,6 +529,8 @@ function MainApp() {
               records={historyRecords}
               onIncrementCounter={handleIncrement}
               onDecrementCounter={handleDecrement}
+              onRegisterCounterZero={handleRegisterCounterZero}
+              onClearCounterZero={handleClearCounterZero}
               onSetBoolean={handleSetBoolean}
               onAddCheckpoint={handleAddCheckpoint}
               onDeleteCheckpoint={handleDeleteCheckpoint}
