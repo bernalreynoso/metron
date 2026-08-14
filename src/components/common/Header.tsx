@@ -8,9 +8,9 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ currentTab }) => {
-  const { user, logoutUser } = useAuth();
+  const { user, timezone, logoutUser } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const todayFormatted = formatSpanishDate(getLocalDateString());
+  const todayFormatted = formatSpanishDate(getLocalDateString(new Date(), timezone));
 
   return (
     <header className="bg-[#080809]/90 border-b border-[#1e1e20] backdrop-blur-md sticky top-0 z-30">

@@ -11,6 +11,7 @@ import {
   parseTimestampToDate,
 } from '../../utils/dates';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from '../../utils/metrics';
+import { useAuth } from '../../context/AuthContext';
 import { X, TrendingUp, TrendingDown, Minus, Activity as ActivityIcon, Clock } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -35,8 +36,9 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
   todayStr,
   onClose,
 }) => {
-  const last30Days = getPastNDays(30, todayStr);
-  const prev30Days = getPastNDays(30, last30Days[0]);
+  const { timezone } = useAuth();
+  const last30Days = getPastNDays(30, todayStr, timezone);
+  const prev30Days = getPastNDays(30, last30Days[0], timezone);
 
   // Aggregate records for last 30 days
   const counterMap: Record<string, number> = {};
@@ -68,7 +70,7 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
 
   const checkpointMetrics =
     activity.type === 'checkpoint'
-      ? calculateCheckpointMetrics(activity, checkpointMap, todayStr, last30Days, prev30Days)
+      ? calculateCheckpointMetrics(activity, checkpointMap, todayStr, last30Days, prev30Days, timezone)
       : null;
 
   const trend: TrendStatus = counterMetrics
@@ -99,14 +101,14 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
         (a, b) => parseTimestampToDate(a.timestamp).getTime() - parseTimestampToDate(b.timestamp).getTime()
       );
       const mode = activity.checkpointMode || 'single';
-      const minutesList = sorted.map((r) => getTimeInMinutesFromMidnight(r.timestamp));
+      const minutesList = sorted.map((r) => getTimeInMinutesFromMidnight(r.timestamp, timezone));
       let targetMinutes: number;
       let formattedTime: string;
 
       if (mode === 'single') {
         const lastRecord = sorted[sorted.length - 1];
-        targetMinutes = getTimeInMinutesFromMidnight(lastRecord.timestamp);
-        formattedTime = formatLocalTime(lastRecord.timestamp);
+        targetMinutes = getTimeInMinutesFromMidnight(lastRecord.timestamp, timezone);
+        formattedTime = formatLocalTime(lastRecord.timestamp, timezone);
       } else {
         targetMinutes = calculateCircularAverageMinutes(minutesList) ?? 0;
         formattedTime = formatMinutesToTime(targetMinutes);

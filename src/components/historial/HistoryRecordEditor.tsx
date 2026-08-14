@@ -2,6 +2,7 @@ import React from 'react';
 import { Activity, ActivityRecord } from '../../types';
 import { ActivityCard } from '../hoy/ActivityCard';
 import { formatLocalTime, formatSpanishDate } from '../../utils/dates';
+import { useAuth } from '../../context/AuthContext';
 import { Trash2, Clock } from 'lucide-react';
 
 interface HistoryRecordEditorProps {
@@ -25,6 +26,7 @@ export const HistoryRecordEditor: React.FC<HistoryRecordEditorProps> = ({
   onAddCheckpoint,
   onDeleteCheckpoint,
 }) => {
+  const { timezone } = useAuth();
   // Aggregate records for selected date
   const counterMap: Record<string, number> = {};
   const booleanMap: Record<string, boolean | null> = {};
@@ -106,7 +108,7 @@ export const HistoryRecordEditor: React.FC<HistoryRecordEditorProps> = ({
                           className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#18181b] border border-[#28282b] text-xs font-mono text-[#e2e2e2]"
                         >
                           <Clock className="w-3.5 h-3.5 text-[#c5a059]" />
-                          <span>{formatLocalTime(r.timestamp)}</span>
+                          <span>{formatLocalTime(r.timestamp, timezone)}</span>
                           <button
                             onClick={() => onDeleteCheckpoint(r.id)}
                             title="Eliminar este checkpoint"

@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatSpanishDate, getLocalDateString, getPastNDays, parseLocalDate } from '../../utils/dates';
+import { useAuth } from '../../context/AuthContext';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DatePickerStripProps {
@@ -11,19 +12,20 @@ export const DatePickerStrip: React.FC<DatePickerStripProps> = ({
   selectedDate,
   onSelectDate,
 }) => {
-  const todayStr = getLocalDateString();
-  const pastDays = getPastNDays(14, todayStr);
+  const { timezone } = useAuth();
+  const todayStr = getLocalDateString(new Date(), timezone);
+  const pastDays = getPastNDays(14, todayStr, timezone);
 
   const handlePrevDay = () => {
     const dateObj = parseLocalDate(selectedDate);
     dateObj.setDate(dateObj.getDate() - 1);
-    onSelectDate(getLocalDateString(dateObj));
+    onSelectDate(getLocalDateString(dateObj, timezone));
   };
 
   const handleNextDay = () => {
     const dateObj = parseLocalDate(selectedDate);
     dateObj.setDate(dateObj.getDate() + 1);
-    const nextStr = getLocalDateString(dateObj);
+    const nextStr = getLocalDateString(dateObj, timezone);
     if (nextStr <= todayStr) {
       onSelectDate(nextStr);
     }

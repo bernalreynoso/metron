@@ -183,14 +183,15 @@ export function calculateCheckpointMetrics(
   checkpointRecordsByDate: Record<string, ActivityRecord[]>,
   todayStr: string,
   currentPeriodDates: string[],
-  previousPeriodDates: string[]
+  previousPeriodDates: string[],
+  timezone?: string
 ): CheckpointMetrics {
   const rawTodayRecords = checkpointRecordsByDate[todayStr] || [];
   const todayRecords = [...rawTodayRecords].sort(
     (a, b) => parseTimestampToDate(a.timestamp).getTime() - parseTimestampToDate(b.timestamp).getTime()
   );
   const todayRecordsCount = todayRecords.length;
-  const todayAllFormattedTimes = todayRecords.map((r) => formatLocalTime(r.timestamp));
+  const todayAllFormattedTimes = todayRecords.map((r) => formatLocalTime(r.timestamp, timezone));
   const todayLastFormattedTime =
     todayAllFormattedTimes.length > 0
       ? todayAllFormattedTimes[todayAllFormattedTimes.length - 1]
@@ -212,11 +213,11 @@ export function calculateCheckpointMetrics(
       if (mode === 'single') {
         // Use ONLY the LAST checkpoint record of the day as primary daily value
         const lastRecord = sortedDayRecords[sortedDayRecords.length - 1];
-        currentMinutesList.push(getTimeInMinutesFromMidnight(lastRecord.timestamp));
+        currentMinutesList.push(getTimeInMinutesFromMidnight(lastRecord.timestamp, timezone));
       } else {
         // Multiple mode: include all checkpoint records of the day
         sortedDayRecords.forEach((r) => {
-          currentMinutesList.push(getTimeInMinutesFromMidnight(r.timestamp));
+          currentMinutesList.push(getTimeInMinutesFromMidnight(r.timestamp, timezone));
         });
       }
     }
@@ -236,11 +237,11 @@ export function calculateCheckpointMetrics(
       if (mode === 'single') {
         // Use ONLY the LAST checkpoint record of the day as primary daily value
         const lastRecord = sortedDayRecords[sortedDayRecords.length - 1];
-        prevMinutesList.push(getTimeInMinutesFromMidnight(lastRecord.timestamp));
+        prevMinutesList.push(getTimeInMinutesFromMidnight(lastRecord.timestamp, timezone));
       } else {
         // Multiple mode: include all checkpoint records of the day
         sortedDayRecords.forEach((r) => {
-          prevMinutesList.push(getTimeInMinutesFromMidnight(r.timestamp));
+          prevMinutesList.push(getTimeInMinutesFromMidnight(r.timestamp, timezone));
         });
       }
     }

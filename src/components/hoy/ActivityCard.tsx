@@ -3,6 +3,7 @@ import { Activity, ActivityRecord } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import { Plus, Minus, Check, X, Clock } from 'lucide-react';
 import { formatLocalTime } from '../../utils/dates';
+import { useAuth } from '../../context/AuthContext';
 
 interface ActivityCardProps {
   activity: Activity;
@@ -27,6 +28,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   onAddCheckpoint,
   onDeleteCheckpoint,
 }) => {
+  const { timezone } = useAuth();
   // Local optimism state for snappy 16ms UI feedback
   const [localCounter, setLocalCounter] = useState<number | null>(counterValue);
   const [localBoolean, setLocalBoolean] = useState<boolean | null>(booleanValue);
@@ -182,7 +184,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   className="px-2 py-0.5 rounded-md bg-[#1c1a16] border border-[#c5a059]/30 text-[#c5a059] font-mono text-[11px] font-semibold flex items-center space-x-1.5"
                 >
                   <Clock className="w-3 h-3 text-[#c5a059]/80" />
-                  <span>{formatLocalTime(r.timestamp)}</span>
+                  <span>{formatLocalTime(r.timestamp, timezone)}</span>
                   {onDeleteCheckpoint && (
                     <button
                       type="button"

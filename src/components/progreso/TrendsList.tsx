@@ -3,6 +3,7 @@ import { Activity, ActivityRecord, PeriodRange, TrendStatus } from '../../types'
 import { IconRenderer } from '../common/IconRenderer';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from '../../utils/metrics';
 import { getComparisonPeriodDates } from '../../utils/dates';
+import { useAuth } from '../../context/AuthContext';
 import { TrendingUp, TrendingDown, Minus, ChevronRight } from 'lucide-react';
 
 interface TrendsListProps {
@@ -18,10 +19,11 @@ export const TrendsList: React.FC<TrendsListProps> = ({
   todayStr,
   onSelectActivity,
 }) => {
+  const { timezone } = useAuth();
   const [period, setPeriod] = useState<PeriodRange>('7d');
 
   const daysCount = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-  const { currentPeriod, previousPeriod } = getComparisonPeriodDates(daysCount, todayStr);
+  const { currentPeriod, previousPeriod } = getComparisonPeriodDates(daysCount, todayStr, timezone);
 
   return (
     <div className="space-y-4">
@@ -81,7 +83,7 @@ export const TrendsList: React.FC<TrendsListProps> = ({
 
           const checkpointMetrics =
             activity.type === 'checkpoint'
-              ? calculateCheckpointMetrics(activity, checkpointMap, todayStr, currentPeriod, previousPeriod)
+              ? calculateCheckpointMetrics(activity, checkpointMap, todayStr, currentPeriod, previousPeriod, timezone)
               : null;
 
           const trend: TrendStatus = counterMetrics

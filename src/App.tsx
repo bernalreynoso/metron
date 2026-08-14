@@ -344,7 +344,7 @@ function MainApp() {
         ? calculateCounterMetrics(act, counterMap, todayStr, currentPeriod, previousPeriod).trend
         : act.type === 'boolean'
         ? calculateBooleanMetrics(act, booleanMap, todayStr, currentPeriod, previousPeriod).trend
-        : calculateCheckpointMetrics(act, checkpointMap, todayStr, currentPeriod, previousPeriod).trend;
+        : calculateCheckpointMetrics(act, checkpointMap, todayStr, currentPeriod, previousPeriod, timezone).trend;
 
     if (trend === 'MEJORANDO') improvingCount++;
     else if (trend === 'EMPEORANDO') worseningCount++;
