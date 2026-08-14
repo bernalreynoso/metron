@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   timezone: string;
+  isOnline: boolean;
   loading: boolean;
   logoutUser: () => Promise<void>;
 }
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   userProfile: null,
   timezone: defaultTimezone,
+  isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
   loading: true,
   logoutUser: async () => {},
 });
@@ -30,6 +32,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     let unsubSnapshot: (() => void) | null = null;
@@ -92,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const timezone = userProfile?.timezone || defaultTimezone;
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, timezone, loading, logoutUser }}>
+    <AuthContext.Provider value={{ user, userProfile, timezone, isOnline, loading, logoutUser }}>
       {children}
     </AuthContext.Provider>
   );

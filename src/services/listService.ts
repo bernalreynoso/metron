@@ -8,6 +8,7 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { ActivityList, Activity } from '../types';
@@ -63,18 +64,25 @@ export async function updateList(
 export async function deleteListSafely(
   userId: string,
   listId: string,
-  activities: Activity[],
-  updateActivityFn: (actId: string, updates: Partial<Activity>) => Promise<void>
+  activities: Activity[]
 ) {
-  // First, unassign any activity that belongs to this list
+  const batch = writeBatch(db);
+
+  // Unassign any activity that belongs to this list
   const activitiesInList = activities.filter((a) => a.listId === listId);
   for (const act of activitiesInList) {
-    await updateActivityFn(act.id, { listId: null });
+    const activityRef = doc(db, 'users', userId, 'activities', act.id);
+    batch.update(activityRef, {
+      listId: null,
+      updatedAt: serverTimestamp(),
+    });
   }
 
-  // Then delete the list document
+  // Delete the list document
   const listRef = doc(db, 'users', userId, 'lists', listId);
-  return await deleteDoc(listRef);
+  batch.delete(listRef);
+
+  return await batch.commit();
 }
 
 export const PRESET_LIST_SUGGESTIONS = [

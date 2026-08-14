@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
 import { Header } from './components/common/Header';
 import { Navigation } from './components/common/Navigation';
+import { UpdateNotification } from './components/common/UpdateNotification';
 import { EmptyState, LoadingSpinner } from './components/common/EmptyState';
 import { HoyView } from './components/hoy/HoyView';
 import { DailySummary } from './components/hoy/DailySummary';
@@ -44,13 +45,14 @@ import {
 } from './services/recordService';
 
 function MainApp() {
-  const { user, timezone, loading: authLoading } = useAuth();
+  const { user, timezone, isOnline, loading: authLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<ActiveTab>('hoy');
   
   const [activities, setActivities] = useState<Activity[]>([]);
   const [lists, setLists] = useState<ActivityListType[]>([]);
   const [records, setRecords] = useState<ActivityRecord[]>([]);
   const [historyRecords, setHistoryRecords] = useState<ActivityRecord[]>([]);
+  const [hasPendingWrites, setHasPendingWrites] = useState<boolean>(false);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
@@ -150,8 +152,11 @@ function MainApp() {
       user.uid,
       startDate,
       endDate,
-      (recs) => {
+      (recs, metadata) => {
         setRecords(recs);
+        if (metadata) {
+          setHasPendingWrites(metadata.hasPendingWrites);
+        }
       },
       (err) => {
         console.error('Error fetching records:', err);
@@ -422,15 +427,13 @@ function MainApp() {
 
   const handleDeleteList = async (listId: string) => {
     if (!user) return;
-    await deleteListSafely(user.uid, listId, activities, (actId, updates) =>
-      updateActivity(user.uid, actId, updates)
-    );
+    await deleteListSafely(user.uid, listId, activities);
   };
 
   return (
     <div className="min-h-screen bg-[#0c0c0d] bg-[radial-gradient(ellipse_at_top_right,_#1a1a1c_0%,_#0c0c0d_70%)] text-[#e2e2e2] flex flex-col font-sans pb-20 md:pb-8 selection:bg-[#c5a05933] selection:text-[#c5a059]">
       {/* App Header */}
-      <Header currentTab={currentTab} />
+      <Header currentTab={currentTab} hasPendingWrites={hasPendingWrites} />
 
       {/* Primary Sub-Navigation */}
       <Navigation currentTab={currentTab} onSelectTab={setCurrentTab} />
@@ -554,6 +557,9 @@ function MainApp() {
           />
         )}
       </main>
+
+      {/* Floating Update Notification */}
+      <UpdateNotification />
     </div>
   );
 }

@@ -12,10 +12,16 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
-  writeBatch
+  writeBatch,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { ActivityRecord } from '../types';
+
+export interface RecordsSnapshotMetadata {
+  hasPendingWrites: boolean;
+  fromCache: boolean;
+}
 
 /**
  * Subscribes to all records of a user for a given date range (or all records if range omitted).
@@ -24,7 +30,7 @@ export function subscribeRecordsByDateRange(
   userId: string,
   startDate: string,
   endDate: string,
-  callback: (records: ActivityRecord[]) => void,
+  callback: (records: ActivityRecord[], metadata?: RecordsSnapshotMetadata) => void,
   onError?: (error: Error) => void
 ) {
   const recordsRef = collection(db, 'users', userId, 'records');
@@ -36,12 +42,16 @@ export function subscribeRecordsByDateRange(
 
   return onSnapshot(
     q,
+    { includeMetadataChanges: true },
     (snapshot) => {
       const records: ActivityRecord[] = snapshot.docs.map((d) => ({
         id: d.id,
         ...d.data(),
       })) as ActivityRecord[];
-      callback(records);
+      callback(records, {
+        hasPendingWrites: snapshot.metadata.hasPendingWrites,
+        fromCache: snapshot.metadata.fromCache,
+      });
     },
     (error) => {
       console.error('Error fetching records:', error);
@@ -104,44 +114,58 @@ export async function addCounterDecrement(userId: string, activityId: string, da
     where('activityId', '==', activityId),
     where('date', '==', date)
   );
-  const snap = await getDocs(q);
 
-  if (snap.empty) return;
+  return await runTransaction(db, async (transaction) => {
+    const snap = await getDocs(q);
 
-  // Calculate current net total
-  let currentTotal = 0;
-  snap.docs.forEach((d) => {
-    currentTotal += Number(d.data().value || 0);
-  });
+    if (snap.empty) return;
 
-  if (currentTotal <= 0) {
-    // Cannot decrement below 0
-    return;
-  }
+    // Read all matching document references inside the transaction for concurrency control
+    const docSnapshots = await Promise.all(
+      snap.docs.map((d) => transaction.get(doc(db, 'users', userId, 'records', d.id)))
+    );
 
-  // Filter positive docs with value = 1
-  const positiveDocs = snap.docs.filter((d) => Number(d.data().value) === 1);
-  if (positiveDocs.length === 0) return;
+    // Calculate current net total from transaction reads
+    let currentTotal = 0;
+    const activeDocs: { id: string; data: any }[] = [];
 
-  // Sort by createdAt / updatedAt timestamp ascending
-  positiveDocs.sort((a, b) => {
-    const dataA = a.data();
-    const dataB = b.data();
-    const getTime = (data: any) => {
-      if (data.createdAt?.toMillis && typeof data.createdAt.toMillis === 'function') {
-        return data.createdAt.toMillis();
+    docSnapshots.forEach((d) => {
+      if (d.exists()) {
+        const data = d.data();
+        currentTotal += Number(data.value || 0);
+        activeDocs.push({ id: d.id, data });
       }
-      if (data.updatedAt?.toMillis && typeof data.updatedAt.toMillis === 'function') {
-        return data.updatedAt.toMillis();
-      }
-      return Date.now();
-    };
-    return getTime(dataA) - getTime(dataB);
-  });
+    });
 
-  // Delete the latest positive record (last item after sorting)
-  const docToDelete = positiveDocs[positiveDocs.length - 1];
-  return await deleteDoc(doc(db, 'users', userId, 'records', docToDelete.id));
+    if (currentTotal <= 0) {
+      // Cannot decrement below 0
+      return;
+    }
+
+    // Filter positive docs with value = 1
+    const positiveDocs = activeDocs.filter((d) => Number(d.data.value) === 1);
+    if (positiveDocs.length === 0) return;
+
+    // Sort by createdAt / updatedAt timestamp ascending
+    positiveDocs.sort((a, b) => {
+      const dataA = a.data;
+      const dataB = b.data;
+      const getTime = (data: any) => {
+        if (data.createdAt?.toMillis && typeof data.createdAt.toMillis === 'function') {
+          return data.createdAt.toMillis();
+        }
+        if (data.updatedAt?.toMillis && typeof data.updatedAt.toMillis === 'function') {
+          return data.updatedAt.toMillis();
+        }
+        return Date.now();
+      };
+      return getTime(dataA) - getTime(dataB);
+    });
+
+    // Delete the latest positive record (last item after sorting)
+    const docToDelete = positiveDocs[positiveDocs.length - 1];
+    transaction.delete(doc(db, 'users', userId, 'records', docToDelete.id));
+  });
 }
 
 /**
