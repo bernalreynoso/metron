@@ -67,7 +67,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
     const completed: Activity[] = [];
 
     activeActivities.forEach((act) => {
-      if (isActivityCompletedToday(act, todayBooleanMap, todayCheckpointMap)) {
+      if (isActivityCompletedToday(act, todayBooleanMap, todayCheckpointMap, todayCounterMap)) {
         completed.push(act);
       } else {
         pending.push(act);
@@ -75,7 +75,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
     });
 
     return { pendingActivities: pending, completedActivities: completed };
-  }, [activeActivities, todayBooleanMap, todayCheckpointMap]);
+  }, [activeActivities, todayBooleanMap, todayCheckpointMap, todayCounterMap]);
 
   // Helper to compute stats for a specific list
   const getListStats = (listId: string | null) => {
@@ -83,7 +83,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
       listId === 'unassigned' ? !a.listId : a.listId === listId
     );
     const completed = listActs.filter((a) =>
-      isActivityCompletedToday(a, todayBooleanMap, todayCheckpointMap)
+      isActivityCompletedToday(a, todayBooleanMap, todayCheckpointMap, todayCounterMap)
     ).length;
     const pending = listActs.length - completed;
 

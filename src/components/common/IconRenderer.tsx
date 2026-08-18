@@ -19,7 +19,11 @@ export interface IconCategory {
 export const ICON_CATEGORIES: IconCategory[] = [
   {
     category: 'HIGIENE',
-    icons: ['ShowerHead', 'Bath', 'Sparkles', 'Droplets', 'Smile', 'Pipette'],
+    icons: ['ShowerHead', 'Bath', 'Sparkles', 'Droplets', 'Smile', 'Pipette', 'Toilet'],
+  },
+  {
+    category: 'FAMILIA',
+    icons: ['Baby', 'Users', 'Heart', 'Home', 'Smile'],
   },
   {
     category: 'TRANSPORTE',
