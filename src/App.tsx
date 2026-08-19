@@ -16,7 +16,14 @@ import { HistoryRecordEditor } from './components/historial/HistoryRecordEditor'
 import { ActivityList } from './components/actividades/ActivityList';
 
 import { Activity, ActivityList as ActivityListType, ActivityRecord, ActiveTab } from './types';
-import { formatSpanishDate, formatShortDate, getLocalDateString, getPastNDays, getComparisonPeriodDates } from './utils/dates';
+import {
+  formatSpanishDate,
+  formatShortDate,
+  getLocalDateString,
+  getPastNDays,
+  getComparisonPeriodDates,
+  buildDateInTimezone,
+} from './utils/dates';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from './utils/metrics';
 import { isActivityCompletedToday } from './utils/activityStatus';
 import {
@@ -41,6 +48,7 @@ import {
   clearCounterZeroRecord,
   setBooleanRecord,
   addCheckpointRecord,
+  updateCheckpointRecordTime,
   deleteCheckpointRecord,
 } from './services/recordService';
 
@@ -390,6 +398,17 @@ function MainApp() {
     await addCheckpointRecord(user.uid, activityId, dateStr);
   };
 
+  const handleAddCheckpointWithTime = async (activityId: string, date: string, timeStr: string) => {
+    if (!user) return;
+    const customDate = buildDateInTimezone(date, timeStr, timezone);
+    await addCheckpointRecord(user.uid, activityId, date, customDate);
+  };
+
+  const handleEditCheckpointTime = async (recordId: string, newTime: Date) => {
+    if (!user) return;
+    await updateCheckpointRecordTime(user.uid, recordId, newTime);
+  };
+
   const handleDeleteCheckpoint = async (recordId: string) => {
     if (!user) return;
     await deleteCheckpointRecord(user.uid, recordId);
@@ -415,9 +434,12 @@ function MainApp() {
     await deleteActivityPermanently(user.uid, activityId);
   };
 
-  const handleCreateList = async (data: Omit<ActivityListType, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
-    await createList(user.uid, data);
+  const handleCreateList = async (
+    data: Omit<ActivityListType, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<string> => {
+    if (!user) throw new Error('Usuario no autenticado');
+    const ref = await createList(user.uid, data);
+    return ref.id;
   };
 
   const handleUpdateList = async (listId: string, updates: Partial<ActivityListType>) => {
@@ -536,6 +558,8 @@ function MainApp() {
               onClearCounterZero={handleClearCounterZero}
               onSetBoolean={handleSetBoolean}
               onAddCheckpoint={handleAddCheckpoint}
+              onAddCheckpointWithTime={handleAddCheckpointWithTime}
+              onEditCheckpointTime={handleEditCheckpointTime}
               onDeleteCheckpoint={handleDeleteCheckpoint}
             />
           </div>

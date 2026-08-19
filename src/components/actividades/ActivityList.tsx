@@ -13,7 +13,7 @@ interface ActivityListProps {
   onUpdateActivity: (activityId: string, updates: Partial<Activity>) => Promise<void>;
   onToggleActive: (activityId: string, active: boolean) => Promise<void>;
   onDeleteActivity?: (activityId: string) => Promise<void>;
-  onCreateList?: (listData: Omit<ActivityListType, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  onCreateList?: (listData: Omit<ActivityListType, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   onUpdateList?: (listId: string, updates: Partial<ActivityListType>) => Promise<void>;
   onDeleteList?: (listId: string) => Promise<void>;
 }
@@ -69,7 +69,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     if (editingList && onUpdateList) {
       await onUpdateList(editingList.id, data);
     } else if (onCreateList) {
-      await onCreateList(data);
+      return await onCreateList(data);
     }
   };
 
@@ -469,6 +469,15 @@ export const ActivityList: React.FC<ActivityListProps> = ({
           initialActivity={editingActivity}
           lists={lists}
           hasRecords={editingActivity ? records.some((r) => r.activityId === editingActivity.id) : false}
+          onCreateList={
+            onCreateList
+              ? (data) =>
+                  onCreateList({
+                    ...data,
+                    order: lists.length,
+                  })
+              : undefined
+          }
           onSave={handleSaveForm}
           onClose={() => setShowFormModal(false)}
         />

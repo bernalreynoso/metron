@@ -237,3 +237,53 @@ export function calculateCircularAverageMinutes(minutesList: number[]): number |
   const avgMinutes = Math.round((avgAngle * 1440) / (2 * Math.PI)) % 1440;
   return avgMinutes;
 }
+
+/**
+ * Builds a Date object representing the given date string (YYYY-MM-DD) and time string (HH:mm)
+ * in the specified IANA timezone (or local time if no timezone is provided).
+ */
+export function buildDateInTimezone(
+  dateStr: string,
+  timeStr: string,
+  timezone?: string
+): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+
+  if (!timezone) {
+    return new Date(year, month - 1, day, hours, minutes, 0, 0);
+  }
+
+  try {
+    const targetUtc = Date.UTC(year, month - 1, day, hours, minutes, 0, 0);
+    const getOffset = (date: Date) => {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      });
+      const parts = formatter.formatToParts(date);
+      const y = parseInt(parts.find((p) => p.type === 'year')?.value ?? '0', 10);
+      const m = parseInt(parts.find((p) => p.type === 'month')?.value ?? '1', 10);
+      const d = parseInt(parts.find((p) => p.type === 'day')?.value ?? '1', 10);
+      const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0', 10) % 24;
+      const min = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0', 10);
+      const s = parseInt(parts.find((p) => p.type === 'second')?.value ?? '0', 10);
+      return Date.UTC(y, m - 1, d, h, min, s) - date.getTime();
+    };
+
+    let result = new Date(targetUtc - getOffset(new Date(targetUtc)));
+    const offset2 = getOffset(result);
+    result = new Date(targetUtc - offset2);
+    return result;
+  } catch (e) {
+    console.warn(`Invalid timezone "${timezone}", falling back to local date construction:`, e);
+    return new Date(year, month - 1, day, hours, minutes, 0, 0);
+  }
+}

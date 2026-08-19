@@ -4,6 +4,7 @@ import {
   BooleanMetrics,
   CheckpointMetrics,
   CounterMetrics,
+  DayOverDayTrend,
   TrendStatus,
 } from '../types';
 import {
@@ -83,6 +84,48 @@ export function calculateCounterMetrics(
     }
   }
 
+  // Calculate dayOverDayTrend (comparing the 2 most recent dates with data across combined periods)
+  let dayOverDayTrend: CounterMetrics['dayOverDayTrend'] = null;
+  const allCounterDatesSorted = Array.from(new Set([...currentPeriodDates, ...previousPeriodDates])).sort((a, b) =>
+    b.localeCompare(a)
+  );
+
+  const recordedCounterDays: { date: string; value: number }[] = [];
+  for (const date of allCounterDatesSorted) {
+    if (date in recordsByDate && recordsByDate[date] !== undefined) {
+      recordedCounterDays.push({ date, value: recordsByDate[date] });
+      if (recordedCounterDays.length === 2) break;
+    }
+  }
+
+  if (recordedCounterDays.length >= 2) {
+    const latestDate = recordedCounterDays[0].date;
+    const latestValue = recordedCounterDays[0].value;
+    const previousDate = recordedCounterDays[1].date;
+    const previousValue = recordedCounterDays[1].value;
+
+    let status: DayOverDayTrend = 'ESTABLE';
+    if (latestValue === previousValue) {
+      status = 'ESTABLE';
+    } else {
+      const isIncreasing = latestValue > previousValue;
+      if (activity.direction === 'increase' || activity.direction === 'compliance') {
+        status = isIncreasing ? 'MEJORANDO' : 'EMPEORANDO';
+      } else {
+        // decrease direction
+        status = isIncreasing ? 'EMPEORANDO' : 'MEJORANDO';
+      }
+    }
+
+    dayOverDayTrend = {
+      status,
+      latestDate,
+      latestValue,
+      previousDate,
+      previousValue,
+    };
+  }
+
   return {
     todayValue,
     dailyAvg: Number(dailyAvg.toFixed(1)),
@@ -96,6 +139,7 @@ export function calculateCounterMetrics(
     percentChange,
     trend,
     hasComparisonData,
+    dayOverDayTrend,
   };
 }
 
@@ -159,6 +203,49 @@ export function calculateBooleanMetrics(
     }
   }
 
+  // Calculate dayOverDayTrend (comparing the 2 most recent dates with data across combined periods)
+  let dayOverDayTrend: BooleanMetrics['dayOverDayTrend'] = null;
+  const allBooleanDatesSorted = Array.from(new Set([...currentPeriodDates, ...previousPeriodDates])).sort((a, b) =>
+    b.localeCompare(a)
+  );
+
+  const recordedBooleanDays: { date: string; value: number }[] = [];
+  for (const date of allBooleanDatesSorted) {
+    if (date in booleanRecordsByDate && booleanRecordsByDate[date] !== null && booleanRecordsByDate[date] !== undefined) {
+      const numVal = booleanRecordsByDate[date] === true ? 1 : 0;
+      recordedBooleanDays.push({ date, value: numVal });
+      if (recordedBooleanDays.length === 2) break;
+    }
+  }
+
+  if (recordedBooleanDays.length >= 2) {
+    const latestDate = recordedBooleanDays[0].date;
+    const latestValue = recordedBooleanDays[0].value;
+    const previousDate = recordedBooleanDays[1].date;
+    const previousValue = recordedBooleanDays[1].value;
+
+    let status: DayOverDayTrend = 'ESTABLE';
+    if (latestValue === previousValue) {
+      status = 'ESTABLE';
+    } else {
+      const isIncreasing = latestValue > previousValue;
+      if (activity.direction === 'decrease') {
+        status = isIncreasing ? 'EMPEORANDO' : 'MEJORANDO';
+      } else {
+        // increase or compliance
+        status = isIncreasing ? 'MEJORANDO' : 'EMPEORANDO';
+      }
+    }
+
+    dayOverDayTrend = {
+      status,
+      latestDate,
+      latestValue,
+      previousDate,
+      previousValue,
+    };
+  }
+
   return {
     todayRecorded: todayRecordExists,
     todayValue,
@@ -172,6 +259,7 @@ export function calculateBooleanMetrics(
     percentagePointsChange,
     trend,
     hasComparisonData,
+    dayOverDayTrend,
   };
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ActivityRecord, TrendStatus } from '../../types';
+import { Activity, ActivityRecord, DayOverDayTrend, TrendStatus } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import {
   formatLocalTime,
@@ -152,6 +152,51 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
     }
   };
 
+  const renderDayOverDayBadge = (
+    dod: { status: DayOverDayTrend; latestDate: string; latestValue: number; previousDate: string; previousValue: number },
+    isBoolean: boolean
+  ) => {
+    if (!dod || dod.status === 'SIN DATOS') return null;
+    const prevLabel = isBoolean ? (dod.previousValue === 1 ? 'Sí' : 'No') : dod.previousValue;
+    const latestLabel = isBoolean ? (dod.latestValue === 1 ? 'Sí' : 'No') : dod.latestValue;
+    const transition = `${prevLabel} → ${latestLabel}`;
+
+    if (dod.status === 'MEJORANDO') {
+      return (
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#1a2e1a]/80 border border-[#2d4a2d] text-[#4ade80]"
+          title={`Comparación preliminar de 2 días: ${formatShortDate(dod.previousDate)} (${prevLabel}) vs ${formatShortDate(dod.latestDate)} (${latestLabel})`}
+        >
+          ↗ Mejorando vs. día anterior ({transition})
+        </span>
+      );
+    }
+
+    if (dod.status === 'EMPEORANDO') {
+      return (
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#2a1a1a]/80 border border-[#4a2d2d] text-[#f87171]"
+          title={`Comparación preliminar de 2 días: ${formatShortDate(dod.previousDate)} (${prevLabel}) vs ${formatShortDate(dod.latestDate)} (${latestLabel})`}
+        >
+          ↘ Empeorando vs. día anterior ({transition})
+        </span>
+      );
+    }
+
+    if (dod.status === 'ESTABLE') {
+      return (
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#18181b] border border-[#28282b] text-[#888888]"
+          title={`Comparación preliminar de 2 días: ${formatShortDate(dod.previousDate)} (${prevLabel}) vs ${formatShortDate(dod.latestDate)} (${latestLabel})`}
+        >
+          → Estable vs. día anterior ({transition})
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   const getDirectionLabel = (direction: string) => {
     switch (direction) {
       case 'increase':
@@ -197,7 +242,17 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
           <div className="flex items-center justify-between p-4 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl">
             <div>
               <p className="text-xs text-[#888888] uppercase tracking-wider font-mono">Estado Actual</p>
-              <div className="mt-1">{getTrendBadge(trend)}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {getTrendBadge(trend)}
+                {counterMetrics &&
+                  !counterMetrics.hasComparisonData &&
+                  counterMetrics.dayOverDayTrend &&
+                  renderDayOverDayBadge(counterMetrics.dayOverDayTrend, false)}
+                {booleanMetrics &&
+                  !booleanMetrics.hasComparisonData &&
+                  booleanMetrics.dayOverDayTrend &&
+                  renderDayOverDayBadge(booleanMetrics.dayOverDayTrend, true)}
+              </div>
             </div>
             <div className="text-right">
               <p className="text-xs text-[#888888]">Dirección</p>

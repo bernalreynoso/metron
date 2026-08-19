@@ -58,6 +58,8 @@ export interface UserProfile {
 
 export type TrendStatus = 'MEJORANDO' | 'EMPEORANDO' | 'ESTABLE' | 'SIN DATOS SUFICIENTES';
 
+export type DayOverDayTrend = 'MEJORANDO' | 'EMPEORANDO' | 'ESTABLE' | 'SIN DATOS';
+
 export interface CounterMetrics {
   todayValue: number | null;
   dailyAvg: number; // average per recorded day
@@ -71,6 +73,13 @@ export interface CounterMetrics {
   percentChange: number | null;
   trend: TrendStatus;
   hasComparisonData: boolean;
+  dayOverDayTrend?: {
+    status: DayOverDayTrend;
+    latestDate: string;
+    latestValue: number;
+    previousDate: string;
+    previousValue: number;
+  } | null;
 }
 
 export interface BooleanMetrics {
@@ -86,6 +95,13 @@ export interface BooleanMetrics {
   percentagePointsChange: number;
   trend: TrendStatus;
   hasComparisonData: boolean;
+  dayOverDayTrend?: {
+    status: DayOverDayTrend;
+    latestDate: string;
+    latestValue: number;
+    previousDate: string;
+    previousValue: number;
+  } | null;
 }
 
 export interface CheckpointMetrics {

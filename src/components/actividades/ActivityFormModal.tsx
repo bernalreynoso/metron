@@ -7,6 +7,7 @@ interface ActivityFormModalProps {
   initialActivity?: Activity | null;
   lists?: ActivityList[];
   hasRecords?: boolean;
+  onCreateList?: (data: { name: string; icon: string; description?: string }) => Promise<string>;
   onSave: (activityData: Omit<Activity, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   onClose: () => void;
 }
@@ -15,6 +16,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   initialActivity,
   lists = [],
   hasRecords = false,
+  onCreateList,
   onSave,
   onClose,
 }) => {
@@ -22,6 +24,9 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   const [description, setDescription] = useState(initialActivity?.description || '');
   const [icon, setIcon] = useState(initialActivity?.icon || 'Clock');
   const [listId, setListId] = useState<string>(initialActivity?.listId || '');
+  const [isCreatingInlineList, setIsCreatingInlineList] = useState(false);
+  const [inlineListName, setInlineListName] = useState('');
+  const [inlineListLoading, setInlineListLoading] = useState(false);
   const [type, setType] = useState<ActivityType>(initialActivity?.type || 'counter');
   const [checkpointMode, setCheckpointMode] = useState<CheckpointMode>(
     initialActivity?.checkpointMode || 'single'
@@ -47,6 +52,39 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
         setDirection('decrease');
       }
     }
+  };
+
+  const handleListSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === '__new__') {
+      setIsCreatingInlineList(true);
+      setInlineListName('');
+    } else {
+      setListId(val);
+    }
+  };
+
+  const handleConfirmInlineList = async () => {
+    if (!inlineListName.trim() || !onCreateList) return;
+    setInlineListLoading(true);
+    try {
+      const newId = await onCreateList({
+        name: inlineListName.trim(),
+        icon: 'Folder',
+      });
+      setListId(newId);
+      setIsCreatingInlineList(false);
+      setInlineListName('');
+    } catch (err) {
+      console.error('Error al crear lista desde formulario de actividad:', err);
+    } finally {
+      setInlineListLoading(false);
+    }
+  };
+
+  const handleCancelInlineList = () => {
+    setIsCreatingInlineList(false);
+    setInlineListName('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,18 +184,59 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
             <label className="block text-xs font-semibold text-[#888888] mb-1">
               Lista de actividades (Agrupador)
             </label>
-            <select
-              value={listId}
-              onChange={(e) => setListId(e.target.value)}
-              className="w-full bg-[#18181b] border border-[#28282b] rounded-lg py-2.5 px-3 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#c5a059]"
-            >
-              <option value="">Sin lista</option>
-              {lists.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+            {isCreatingInlineList ? (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  placeholder="Nombre de la nueva lista"
+                  value={inlineListName}
+                  onChange={(e) => setInlineListName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleConfirmInlineList();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      handleCancelInlineList();
+                    }
+                  }}
+                  autoFocus
+                  className="flex-1 bg-[#18181b] border border-[#c5a059] rounded-lg py-2 px-3 text-sm text-[#e2e2e2] placeholder-[#666666] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleConfirmInlineList}
+                  disabled={!inlineListName.trim() || inlineListLoading}
+                  className="px-3 py-2 bg-[#c5a059] hover:bg-[#d4b068] text-[#0c0c0d] text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {inlineListLoading ? 'Creando...' : 'Crear y usar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelInlineList}
+                  disabled={inlineListLoading}
+                  className="px-3 py-2 bg-[#18181b] hover:bg-[#222225] text-[#888888] hover:text-[#e2e2e2] border border-[#28282b] text-xs font-medium rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <select
+                value={listId}
+                onChange={handleListSelectChange}
+                className="w-full bg-[#18181b] border border-[#28282b] rounded-lg py-2.5 px-3 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#c5a059]"
+              >
+                <option value="">Sin lista</option>
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+                {onCreateList && (
+                  <option value="__new__">+ Crear nueva lista...</option>
+                )}
+              </select>
+            )}
           </div>
 
           {/* Type Selector */}

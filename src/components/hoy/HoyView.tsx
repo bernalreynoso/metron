@@ -294,7 +294,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                           </h4>
                           <p className="text-xs text-[#888888] font-mono mt-0.5">
                             {pending === 0
-                              ? 'Todo completado'
+                              ? 'Todo registrado'
                               : `${pending} ${pending === 1 ? 'pendiente' : 'pendientes'}`}
                             {completed > 0 && ` · ${completed} realizada${completed === 1 ? '' : 's'}`}
                           </p>
@@ -305,7 +305,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                         {isAllDone ? (
                           <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d]">
                             <Check className="w-3 h-3 stroke-[3]" />
-                            <span>Listal</span>
+                            <span>Al día</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#18181b] text-[#c5a059] border border-[#28282b]">
@@ -337,7 +337,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                         </h4>
                         <p className="text-xs text-[#888888] font-mono mt-0.5">
                           {unassignedStats.pending === 0
-                            ? 'Todo completado'
+                            ? 'Todo registrado'
                             : `${unassignedStats.pending} ${unassignedStats.pending === 1 ? 'pendiente' : 'pendientes'}`}
                         </p>
                       </div>
@@ -347,7 +347,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                       {unassignedStats.pending === 0 ? (
                         <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d]">
                           <Check className="w-3 h-3 stroke-[3]" />
-                          <span>Listo</span>
+                          <span>Al día</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#18181b] text-[#888888] border border-[#28282b]">
