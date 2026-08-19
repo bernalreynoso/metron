@@ -5,9 +5,8 @@ import { Activity, ActivityRecord } from '../types';
  *
  * Rules:
  * - Boolean (Sí/No):
- *   - 'Sí' (true) -> REALIZADA (Moves to Realizadas tab)
- *   - 'No' (false) -> PENDIENTE (Stays in Pending view for review)
- *   - 'Sin registro' (null) -> PENDIENTE
+ *   - 'Sí' (true) or 'No' (false) -> REALIZADA (Moves to Realizadas tab)
+ *   - 'Sin registro' (null / undefined) -> PENDIENTE
  *
  * - Checkpoint (Single or Multiple):
  *   - Registered (at least 1 timestamp today) -> REALIZADA
@@ -24,7 +23,8 @@ export function isActivityCompletedToday(
   todayCounterMap?: Record<string, number | null>
 ): boolean {
   if (act.type === 'boolean') {
-    return todayBooleanMap[act.id] === true;
+    const val = todayBooleanMap[act.id];
+    return val !== undefined && val !== null;
   }
   if (act.type === 'checkpoint') {
     const recs = todayCheckpointMap[act.id] || [];

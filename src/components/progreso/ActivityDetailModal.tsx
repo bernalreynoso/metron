@@ -1,5 +1,5 @@
-import React from 'react';
-import { Activity, ActivityRecord, DayOverDayTrend, TrendStatus } from '../../types';
+import React, { useState } from 'react';
+import { Activity, ActivityRecord, CheckpointSegmentsAnalysis, DayOverDayTrend, TrendStatus } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import {
   formatLocalTime,
@@ -10,9 +10,15 @@ import {
   formatMinutesToTime,
   parseTimestampToDate,
 } from '../../utils/dates';
-import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from '../../utils/metrics';
+import {
+  calculateBooleanMetrics,
+  calculateCheckpointMetrics,
+  calculateCheckpointSegments,
+  calculateCounterMetrics,
+} from '../../utils/metrics';
 import { useAuth } from '../../context/AuthContext';
-import { X, TrendingUp, TrendingDown, Minus, Activity as ActivityIcon, Clock, Trophy } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, Minus, Activity as ActivityIcon, Clock, Trophy, Layers } from 'lucide-react';
+import { CheckpointSegmentsModal } from './CheckpointSegmentsModal';
 import {
   ResponsiveContainer,
   BarChart,
@@ -37,6 +43,9 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
   onClose,
 }) => {
   const { timezone } = useAuth();
+  const [showSegmentsModal, setShowSegmentsModal] = useState<boolean>(false);
+  const [segmentsAnalysis, setSegmentsAnalysis] = useState<CheckpointSegmentsAnalysis | null>(null);
+
   const last30Days = getPastNDays(30, todayStr, timezone);
   const prev30Days = getPastNDays(30, last30Days[0], timezone);
 
@@ -57,6 +66,13 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
       }
     }
   });
+
+  const handleOpenSegments = () => {
+    const periodDates = [...prev30Days, ...last30Days];
+    const analysis = calculateCheckpointSegments(checkpointMap, periodDates);
+    setSegmentsAnalysis(analysis);
+    setShowSegmentsModal(true);
+  };
 
   const counterMetrics =
     activity.type === 'counter'
@@ -345,31 +361,46 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
           )}
 
           {activity.type === 'checkpoint' && checkpointMetrics && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
-                <p className="text-[11px] text-[#888888]">Hoy</p>
-                <p className="text-sm font-bold font-mono text-[#c5a059]">
-                  {checkpointMetrics.todayLastFormattedTime || 'Sin registro'}
-                </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
+                  <p className="text-[11px] text-[#888888]">Hoy</p>
+                  <p className="text-sm font-bold font-mono text-[#c5a059]">
+                    {checkpointMetrics.todayLastFormattedTime || 'Sin registro'}
+                  </p>
+                </div>
+                <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
+                  <p className="text-[11px] text-[#888888]">Hora promedio</p>
+                  <p className="text-lg font-bold font-mono text-[#e2e2e2]">
+                    {checkpointMetrics.avgFormattedTime || '--:--'}
+                  </p>
+                </div>
+                <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
+                  <p className="text-[11px] text-[#888888]">Más temprano / Más tarde</p>
+                  <p className="text-xs font-bold font-mono text-[#e2e2e2]">
+                    {checkpointMetrics.earliestFormattedTime || '--:--'} / {checkpointMetrics.latestFormattedTime || '--:--'}
+                  </p>
+                </div>
+                <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
+                  <p className="text-[11px] text-[#888888]">Días registrados</p>
+                  <p className="text-lg font-bold font-mono text-[#e2e2e2]">
+                    {checkpointMetrics.currentDaysWithData}/{checkpointMetrics.totalDaysInPeriod}
+                  </p>
+                </div>
               </div>
-              <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
-                <p className="text-[11px] text-[#888888]">Hora promedio</p>
-                <p className="text-lg font-bold font-mono text-[#e2e2e2]">
-                  {checkpointMetrics.avgFormattedTime || '--:--'}
-                </p>
-              </div>
-              <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
-                <p className="text-[11px] text-[#888888]">Más temprano / Más tarde</p>
-                <p className="text-xs font-bold font-mono text-[#e2e2e2]">
-                  {checkpointMetrics.earliestFormattedTime || '--:--'} / {checkpointMetrics.latestFormattedTime || '--:--'}
-                </p>
-              </div>
-              <div className="p-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-lg">
-                <p className="text-[11px] text-[#888888]">Días registrados</p>
-                <p className="text-lg font-bold font-mono text-[#e2e2e2]">
-                  {checkpointMetrics.currentDaysWithData}/{checkpointMetrics.totalDaysInPeriod}
-                </p>
-              </div>
+
+              {activity.checkpointMode === 'multiple' && activity.trackSegments === true && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleOpenSegments}
+                    className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold font-mono bg-[#18181b] hover:bg-[#222225] text-[#c5a059] border border-[#c5a059]/40 hover:border-[#c5a059] transition-all shadow-sm"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>📊 Ver análisis de tramos</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -413,6 +444,14 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {showSegmentsModal && segmentsAnalysis && (
+        <CheckpointSegmentsModal
+          activity={activity}
+          analysis={segmentsAnalysis}
+          onClose={() => setShowSegmentsModal(false)}
+        />
+      )}
     </div>
   );
 };
