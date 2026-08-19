@@ -31,6 +31,9 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   const [checkpointMode, setCheckpointMode] = useState<CheckpointMode>(
     initialActivity?.checkpointMode || 'single'
   );
+  const [trackSegments, setTrackSegments] = useState<boolean>(
+    initialActivity?.trackSegments || false
+  );
   const [direction, setDirection] = useState<ActivityDirection>(
     initialActivity?.direction || 'decrease'
   );
@@ -110,6 +113,9 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
 
       if (type === 'checkpoint') {
         activityData.checkpointMode = checkpointMode;
+        if (checkpointMode === 'multiple') {
+          activityData.trackSegments = trackSegments;
+        }
       }
 
       await onSave(activityData);
@@ -302,48 +308,71 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
 
           {/* Registros por día (Checkpoint Mode) */}
           {type === 'checkpoint' && (
-            <div>
-              <label className="block text-xs font-semibold text-[#888888] mb-1.5">
-                Registros por día
-              </label>
-              {hasRecords && initialActivity && (
-                <p className="text-[11px] text-[#c5a059] mb-2 font-light">
-                  El modo de registros por día no puede cambiarse porque ya tiene registros históricos.
-                </p>
-              )}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  disabled={hasRecords && !!initialActivity}
-                  onClick={() => setCheckpointMode('single')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    checkpointMode === 'single'
-                      ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]'
-                      : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                  <p className="text-xs font-bold font-mono">○ Uno</p>
-                  <p className="text-[10px] text-[#888888] mt-1 font-light leading-tight">
-                    Uno: normalmente registrarás una vez al día.
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-[#888888] mb-1.5">
+                  Registros por día
+                </label>
+                {hasRecords && initialActivity && (
+                  <p className="text-[11px] text-[#c5a059] mb-2 font-light">
+                    El modo de registros por día no puede cambiarse porque ya tiene registros históricos.
                   </p>
-                </button>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={hasRecords && !!initialActivity}
+                    onClick={() => setCheckpointMode('single')}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      checkpointMode === 'single'
+                        ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]'
+                        : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
+                    } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
+                    <p className="text-xs font-bold font-mono">○ Uno</p>
+                    <p className="text-[10px] text-[#888888] mt-1 font-light leading-tight">
+                      Uno: normalmente registrarás una vez al día.
+                    </p>
+                  </button>
 
-                <button
-                  type="button"
-                  disabled={hasRecords && !!initialActivity}
-                  onClick={() => setCheckpointMode('multiple')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    checkpointMode === 'multiple'
-                      ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]'
-                      : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
-                  } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                  <p className="text-xs font-bold font-mono">○ Varios</p>
-                  <p className="text-[10px] text-[#888888] mt-1 font-light leading-tight">
-                    Varios: puedes registrar varias veces durante el día.
-                  </p>
-                </button>
+                  <button
+                    type="button"
+                    disabled={hasRecords && !!initialActivity}
+                    onClick={() => setCheckpointMode('multiple')}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      checkpointMode === 'multiple'
+                        ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]'
+                        : 'bg-[#18181b] border-[#28282b] text-[#888888] hover:text-[#e2e2e2]'
+                    } ${hasRecords && !!initialActivity ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
+                    <p className="text-xs font-bold font-mono">○ Varios</p>
+                    <p className="text-[10px] text-[#888888] mt-1 font-light leading-tight">
+                      Varios: puedes registrar varias veces durante el día.
+                    </p>
+                  </button>
+                </div>
               </div>
+
+              {checkpointMode === 'multiple' && (
+                <div className="bg-[#18181b] border border-[#28282b] rounded-xl p-3">
+                  <label className="flex items-start space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={trackSegments}
+                      onChange={(e) => setTrackSegments(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded bg-[#0c0c0d] border-[#28282b] text-[#c5a059] accent-[#c5a059] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="text-xs font-semibold text-[#e2e2e2] block">
+                        Analizar tramos entre checkpoints
+                      </span>
+                      <span className="text-[11px] text-[#888888] leading-tight block mt-0.5 font-light">
+                        Útil para actividades con varios checkpoints seguidos en el mismo recorrido (ej. transbordes de transporte). Muestra cuánto tardas entre cada uno.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
           )}
 

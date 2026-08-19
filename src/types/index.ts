@@ -28,6 +28,7 @@ export interface Activity {
   type: ActivityType;
   direction: ActivityDirection;
   checkpointMode?: CheckpointMode;
+  trackSegments?: boolean;
   listId?: string | null;
   active: boolean;
   order: number;
@@ -80,6 +81,12 @@ export interface CounterMetrics {
     previousDate: string;
     previousValue: number;
   } | null;
+  personalBest?: {
+    value: number;
+    formattedValue?: string;
+    date: string;
+    isNewRecord: boolean;
+  } | null;
 }
 
 export interface BooleanMetrics {
@@ -119,6 +126,30 @@ export interface CheckpointMetrics {
   minuteDiff: number | null;
   trend: TrendStatus;
   hasComparisonData: boolean;
+  personalBest?: {
+    value: number;
+    formattedValue?: string;
+    date: string;
+    isNewRecord: boolean;
+  } | null;
+}
+
+export interface CheckpointSegmentStats {
+  segmentIndex: number; // 0-based
+  label: string; // ej. "Tramo 1"
+  avgMinutes: number | null;
+  minMinutes: number | null;
+  maxMinutes: number | null;
+  daysWithData: number;
+  formattedAvg: string | null; // ej. "27 min"
+  dailyDurations: { date: string; minutes: number }[]; // para poder graficar después
+}
+
+export interface CheckpointSegmentsAnalysis {
+  segments: CheckpointSegmentStats[];
+  longestSegmentIndex: number | null; // el de mayor promedio
+  mostInconsistentSegmentIndex: number | null; // el de mayor variabilidad (max-min más amplio, o desviación estándar más alta)
+  totalDaysAnalyzed: number;
 }
 
 export type PeriodRange = '7d' | '30d' | '90d';

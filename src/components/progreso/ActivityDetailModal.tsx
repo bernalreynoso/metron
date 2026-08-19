@@ -12,7 +12,7 @@ import {
 } from '../../utils/dates';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from '../../utils/metrics';
 import { useAuth } from '../../context/AuthContext';
-import { X, TrendingUp, TrendingDown, Minus, Activity as ActivityIcon, Clock } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, Minus, Activity as ActivityIcon, Clock, Trophy } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -252,6 +252,15 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                   !booleanMetrics.hasComparisonData &&
                   booleanMetrics.dayOverDayTrend &&
                   renderDayOverDayBadge(booleanMetrics.dayOverDayTrend, true)}
+                {(counterMetrics?.personalBest?.isNewRecord || checkpointMetrics?.personalBest?.isNewRecord) && (
+                  <span
+                    className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#261f10] border border-[#c5a059] text-[#facc15]"
+                    title="¡El registro de hoy es el mejor en todo el historial registrado!"
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-[#facc15] shrink-0" />
+                    <span>🏆 Nuevo récord personal</span>
+                  </span>
+                )}
               </div>
             </div>
             <div className="text-right">

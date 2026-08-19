@@ -3,6 +3,8 @@ import {
   ActivityRecord,
   BooleanMetrics,
   CheckpointMetrics,
+  CheckpointSegmentStats,
+  CheckpointSegmentsAnalysis,
   CounterMetrics,
   DayOverDayTrend,
   TrendStatus,
@@ -126,6 +128,50 @@ export function calculateCounterMetrics(
     };
   }
 
+  // Calculate personalBest (all-time best comparison, only for increase or decrease)
+  let personalBest: CounterMetrics['personalBest'] = null;
+  if ((activity.direction === 'increase' || activity.direction === 'decrease') && todayValue !== null) {
+    const prevDatesWithData: { date: string; value: number }[] = [];
+    for (const [date, val] of Object.entries(recordsByDate)) {
+      if (date !== todayStr && val !== undefined && val !== null) {
+        prevDatesWithData.push({ date, value: val });
+      }
+    }
+
+    if (prevDatesWithData.length > 0) {
+      if (activity.direction === 'increase') {
+        let best = prevDatesWithData[0];
+        for (let i = 1; i < prevDatesWithData.length; i++) {
+          if (prevDatesWithData[i].value > best.value) {
+            best = prevDatesWithData[i];
+          }
+        }
+        const isNewRecord = todayValue > best.value;
+        personalBest = {
+          value: isNewRecord ? todayValue : best.value,
+          formattedValue: String(isNewRecord ? todayValue : best.value),
+          date: isNewRecord ? todayStr : best.date,
+          isNewRecord,
+        };
+      } else {
+        // decrease direction
+        let best = prevDatesWithData[0];
+        for (let i = 1; i < prevDatesWithData.length; i++) {
+          if (prevDatesWithData[i].value < best.value) {
+            best = prevDatesWithData[i];
+          }
+        }
+        const isNewRecord = todayValue < best.value;
+        personalBest = {
+          value: isNewRecord ? todayValue : best.value,
+          formattedValue: String(isNewRecord ? todayValue : best.value),
+          date: isNewRecord ? todayStr : best.date,
+          isNewRecord,
+        };
+      }
+    }
+  }
+
   return {
     todayValue,
     dailyAvg: Number(dailyAvg.toFixed(1)),
@@ -140,6 +186,7 @@ export function calculateCounterMetrics(
     trend,
     hasComparisonData,
     dayOverDayTrend,
+    personalBest,
   };
 }
 
@@ -384,6 +431,91 @@ export function calculateCheckpointMetrics(
     }
   }
 
+  // Calculate personalBest for checkpoint metrics (only if direction is earlier or later)
+  let personalBest: CheckpointMetrics['personalBest'] = null;
+  if (activity.direction === 'earlier' || activity.direction === 'later') {
+    // Determine today's representative value
+    let todayRepMinutes: number | null = null;
+    let todayRepFormatted: string | null = null;
+
+    if (todayRecords.length > 0) {
+      if (mode === 'single') {
+        const lastRecord = todayRecords[todayRecords.length - 1];
+        todayRepMinutes = getTimeInMinutesFromMidnight(lastRecord.timestamp, timezone);
+        todayRepFormatted = todayLastFormattedTime;
+      } else {
+        const todayMinutesList = todayRecords.map((r) => getTimeInMinutesFromMidnight(r.timestamp, timezone));
+        todayRepMinutes = calculateCircularAverageMinutes(todayMinutesList);
+        if (todayRepMinutes !== null) {
+          todayRepFormatted = formatMinutesToTime(todayRepMinutes);
+        }
+      }
+    }
+
+    if (todayRepMinutes !== null && todayRepFormatted !== null) {
+      const prevDaysWithData: { date: string; minutes: number; formatted: string }[] = [];
+
+      for (const [date, rawRecords] of Object.entries(checkpointRecordsByDate)) {
+        if (date === todayStr || !rawRecords || rawRecords.length === 0) continue;
+
+        const sortedRecords = [...rawRecords].sort(
+          (a, b) => parseTimestampToDate(a.timestamp).getTime() - parseTimestampToDate(b.timestamp).getTime()
+        );
+
+        if (mode === 'single') {
+          const lastRecord = sortedRecords[sortedRecords.length - 1];
+          const minutes = getTimeInMinutesFromMidnight(lastRecord.timestamp, timezone);
+          const formatted = formatLocalTime(lastRecord.timestamp, timezone);
+          prevDaysWithData.push({ date, minutes, formatted });
+        } else {
+          const minutesList = sortedRecords.map((r) => getTimeInMinutesFromMidnight(r.timestamp, timezone));
+          const avgMinutes = calculateCircularAverageMinutes(minutesList);
+          if (avgMinutes !== null) {
+            prevDaysWithData.push({
+              date,
+              minutes: avgMinutes,
+              formatted: formatMinutesToTime(avgMinutes),
+            });
+          }
+        }
+      }
+
+      if (prevDaysWithData.length > 0) {
+        if (activity.direction === 'earlier') {
+          // earlier: lower minutes from midnight is better
+          let best = prevDaysWithData[0];
+          for (let i = 1; i < prevDaysWithData.length; i++) {
+            if (prevDaysWithData[i].minutes < best.minutes) {
+              best = prevDaysWithData[i];
+            }
+          }
+          const isNewRecord = todayRepMinutes < best.minutes;
+          personalBest = {
+            value: isNewRecord ? todayRepMinutes : best.minutes,
+            formattedValue: isNewRecord ? todayRepFormatted : best.formatted,
+            date: isNewRecord ? todayStr : best.date,
+            isNewRecord,
+          };
+        } else {
+          // later: higher minutes from midnight is better
+          let best = prevDaysWithData[0];
+          for (let i = 1; i < prevDaysWithData.length; i++) {
+            if (prevDaysWithData[i].minutes > best.minutes) {
+              best = prevDaysWithData[i];
+            }
+          }
+          const isNewRecord = todayRepMinutes > best.minutes;
+          personalBest = {
+            value: isNewRecord ? todayRepMinutes : best.minutes,
+            formattedValue: isNewRecord ? todayRepFormatted : best.formatted,
+            date: isNewRecord ? todayStr : best.date,
+            isNewRecord,
+          };
+        }
+      }
+    }
+  }
+
   return {
     todayRecordsCount,
     todayLastFormattedTime,
@@ -399,5 +531,103 @@ export function calculateCheckpointMetrics(
     minuteDiff,
     trend,
     hasComparisonData,
+    personalBest,
   };
 }
+
+/**
+ * Calculates duration between consecutive checkpoints on the same day (segments) across a period.
+ */
+export function calculateCheckpointSegments(
+  checkpointRecordsByDate: Record<string, ActivityRecord[]>,
+  periodDates: string[]
+): CheckpointSegmentsAnalysis {
+  // Map segmentIndex -> array of { date, minutes }
+  const segmentDataMap: Record<number, { date: string; minutes: number }[]> = {};
+  let totalDaysAnalyzed = 0;
+
+  for (const date of periodDates) {
+    const rawRecords = checkpointRecordsByDate[date];
+    if (!rawRecords || rawRecords.length === 0) continue;
+
+    totalDaysAnalyzed++;
+
+    if (rawRecords.length < 2) {
+      // Need at least 2 checkpoints to form a segment
+      continue;
+    }
+
+    const sortedRecords = [...rawRecords].sort(
+      (a, b) => parseTimestampToDate(a.timestamp).getTime() - parseTimestampToDate(b.timestamp).getTime()
+    );
+
+    for (let i = 0; i < sortedRecords.length - 1; i++) {
+      const t1 = parseTimestampToDate(sortedRecords[i].timestamp).getTime();
+      const t2 = parseTimestampToDate(sortedRecords[i + 1].timestamp).getTime();
+      const diffMinutes = Math.max(0, Math.round((t2 - t1) / 60000));
+
+      if (!segmentDataMap[i]) {
+        segmentDataMap[i] = [];
+      }
+      segmentDataMap[i].push({ date, minutes: diffMinutes });
+    }
+  }
+
+  const segmentIndices = Object.keys(segmentDataMap)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  const segments: CheckpointSegmentStats[] = segmentIndices.map((segmentIndex) => {
+    const items = segmentDataMap[segmentIndex];
+    const minutesList = items.map((item) => item.minutes);
+    const sum = minutesList.reduce((acc, m) => acc + m, 0);
+    const avg = items.length > 0 ? Math.round((sum / items.length) * 10) / 10 : null;
+    const min = items.length > 0 ? Math.min(...minutesList) : null;
+    const max = items.length > 0 ? Math.max(...minutesList) : null;
+
+    let formattedAvg: string | null = null;
+    if (avg !== null) {
+      formattedAvg = `${Math.round(avg)} min`;
+    }
+
+    return {
+      segmentIndex,
+      label: `Tramo ${segmentIndex + 1}`,
+      avgMinutes: avg,
+      minMinutes: min,
+      maxMinutes: max,
+      daysWithData: items.length,
+      formattedAvg,
+      dailyDurations: items,
+    };
+  });
+
+  let longestSegmentIndex: number | null = null;
+  let maxAvg = -1;
+
+  let mostInconsistentSegmentIndex: number | null = null;
+  let maxSpread = -1;
+
+  for (const seg of segments) {
+    if (seg.avgMinutes !== null && seg.avgMinutes > maxAvg) {
+      maxAvg = seg.avgMinutes;
+      longestSegmentIndex = seg.segmentIndex;
+    }
+
+    if (seg.maxMinutes !== null && seg.minMinutes !== null) {
+      const spread = seg.maxMinutes - seg.minMinutes;
+      if (spread > maxSpread) {
+        maxSpread = spread;
+        mostInconsistentSegmentIndex = seg.segmentIndex;
+      }
+    }
+  }
+
+  return {
+    segments,
+    longestSegmentIndex,
+    mostInconsistentSegmentIndex,
+    totalDaysAnalyzed,
+  };
+}
+

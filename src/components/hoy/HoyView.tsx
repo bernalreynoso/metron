@@ -315,7 +315,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                           <p className="text-xs text-[#888888] font-mono mt-0.5">
                             {notCompleted === 0
                               ? 'Todo registrado'
-                              : `${pending} ${pending === 1 ? 'pendiente' : 'pendientes'}`}
+                              : `${notCompleted} ${notCompleted === 1 ? 'pendiente' : 'pendientes'}`}
                             {completed > 0 && ` · ${completed} realizada${completed === 1 ? '' : 's'}`}
                           </p>
                         </div>
@@ -329,7 +329,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#18181b] text-[#c5a059] border border-[#28282b]">
-                            {pending} pendientes
+                            {notCompleted} pendientes
                           </span>
                         )}
                       </div>
@@ -358,7 +358,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                         <p className="text-xs text-[#888888] font-mono mt-0.5">
                           {unassignedStats.notCompleted === 0
                             ? 'Todo registrado'
-                            : `${unassignedStats.pending} ${unassignedStats.pending === 1 ? 'pendiente' : 'pendientes'}`}
+                            : `${unassignedStats.notCompleted} ${unassignedStats.notCompleted === 1 ? 'pendiente' : 'pendientes'}`}
                           {unassignedStats.completed > 0 && ` · ${unassignedStats.completed} realizada${unassignedStats.completed === 1 ? '' : 's'}`}
                         </p>
                       </div>
@@ -372,7 +372,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#18181b] text-[#888888] border border-[#28282b]">
-                          {unassignedStats.pending} pendientes
+                          {unassignedStats.notCompleted} pendientes
                         </span>
                       )}
                     </div>
