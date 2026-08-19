@@ -2,7 +2,7 @@ import React from 'react';
 import { Activity, CheckpointSegmentsAnalysis } from '../../types';
 import { IconRenderer } from '../common/IconRenderer';
 import { formatShortDate } from '../../utils/dates';
-import { X, Clock, Award, AlertTriangle, Layers } from 'lucide-react';
+import { X, Clock, Award, AlertTriangle, Layers, Timer, Route } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -25,6 +25,30 @@ export const CheckpointSegmentsModal: React.FC<CheckpointSegmentsModalProps> = (
   onClose,
 }) => {
   const { segments, longestSegmentIndex, mostInconsistentSegmentIndex, totalDaysAnalyzed } = analysis;
+
+  // Total journey calculations
+  const validSegmentsWithAvg = segments.filter((s) => s.avgMinutes !== null);
+  const totalAvgMinutes = validSegmentsWithAvg.reduce((acc, s) => acc + (s.avgMinutes || 0), 0);
+  const roundedTotalAvg = Math.round(totalAvgMinutes);
+
+  let formattedTotalAvg = '—';
+  if (validSegmentsWithAvg.length > 0) {
+    if (roundedTotalAvg >= 60) {
+      const hours = Math.floor(roundedTotalAvg / 60);
+      const mins = roundedTotalAvg % 60;
+      formattedTotalAvg = `${hours}h ${mins}min (${roundedTotalAvg} min)`;
+    } else {
+      formattedTotalAvg = `${roundedTotalAvg} min`;
+    }
+  }
+
+  const validMinSegments = segments.filter((s) => s.minMinutes !== null);
+  const totalMinMinutes = validMinSegments.reduce((acc, s) => acc + (s.minMinutes || 0), 0);
+  const validMaxSegments = segments.filter((s) => s.maxMinutes !== null);
+  const totalMaxMinutes = validMaxSegments.reduce((acc, s) => acc + (s.maxMinutes || 0), 0);
+
+  const hasRangeData = validMinSegments.length === segments.length && validMaxSegments.length === segments.length && segments.length > 0;
+  const formattedRange = hasRangeData ? `${totalMinMinutes} min – ${totalMaxMinutes} min` : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0c0c0d]/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -68,6 +92,35 @@ export const CheckpointSegmentsModal: React.FC<CheckpointSegmentsModalProps> = (
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Total Route Summary Card */}
+              <div className="bg-gradient-to-br from-[#18181b] to-[#121214] border border-[#c5a059]/40 rounded-xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <Route className="w-4 h-4 text-[#c5a059]" />
+                      <span className="text-xs font-bold text-[#e2e2e2] uppercase tracking-wider">
+                        Tiempo total promedio del recorrido
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#888888] font-light">
+                      Suma de los {segments.length} {segments.length === 1 ? 'tramo analizado' : 'tramos analizados'}
+                    </p>
+                  </div>
+
+                  <div className="sm:text-right">
+                    <span className="text-2xl sm:text-3xl font-bold font-mono text-[#c5a059] block">
+                      {formattedTotalAvg}
+                    </span>
+                    {formattedRange && (
+                      <span className="text-xs text-[#a1a1aa] font-mono block mt-0.5">
+                        Rango: <strong className="text-[#e2e2e2] font-semibold">{formattedRange}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Individual Segments */}
               {segments.map((seg) => {
                 const isLongest = seg.segmentIndex === longestSegmentIndex;
                 const isMostInconsistent = seg.segmentIndex === mostInconsistentSegmentIndex;
