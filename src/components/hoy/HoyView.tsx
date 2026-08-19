@@ -61,14 +61,27 @@ export const HoyView: React.FC<HoyViewProps> = ({
     return activities.filter((a) => a.active);
   }, [activities]);
 
-  // Separate active activities into pending vs completed today according to Part 16 rules
+  // Separate active activities into pending vs completed today
   const { pendingActivities, completedActivities } = useMemo(() => {
     const pending: Activity[] = [];
     const completed: Activity[] = [];
 
     activeActivities.forEach((act) => {
-      if (isActivityCompletedToday(act, todayBooleanMap, todayCheckpointMap, todayCounterMap)) {
+      const isCompleted = isActivityCompletedToday(
+        act,
+        todayBooleanMap,
+        todayCheckpointMap,
+        todayCounterMap
+      );
+      const isMultiRecordable =
+        act.type === 'counter' ||
+        (act.type === 'checkpoint' && act.checkpointMode === 'multiple');
+
+      if (isCompleted) {
         completed.push(act);
+        if (isMultiRecordable) {
+          pending.push(act);
+        }
       } else {
         pending.push(act);
       }
@@ -85,12 +98,21 @@ export const HoyView: React.FC<HoyViewProps> = ({
     const completed = listActs.filter((a) =>
       isActivityCompletedToday(a, todayBooleanMap, todayCheckpointMap, todayCounterMap)
     ).length;
-    const pending = listActs.length - completed;
+    const notCompleted = listActs.filter((a) =>
+      !isActivityCompletedToday(a, todayBooleanMap, todayCheckpointMap, todayCounterMap)
+    ).length;
+    const pending = listActs.filter((a) => {
+      const isDone = isActivityCompletedToday(a, todayBooleanMap, todayCheckpointMap, todayCounterMap);
+      const isMulti = a.type === 'counter' || (a.type === 'checkpoint' && a.checkpointMode === 'multiple');
+      return !isDone || isMulti;
+    }).length;
 
     return {
       total: listActs.length,
       pending,
       completed,
+      notCompleted,
+      isAllDone: notCompleted === 0 && listActs.length > 0,
     };
   };
 
@@ -263,10 +285,8 @@ export const HoyView: React.FC<HoyViewProps> = ({
               {/* Grid of Lists */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {lists.map((list) => {
-                  const { total, pending, completed } = getListStats(list.id);
+                  const { total, pending, completed, notCompleted, isAllDone } = getListStats(list.id);
                   if (total === 0) return null; // Skip empty lists if any
-
-                  const isAllDone = total > 0 && pending === 0;
 
                   return (
                     <div
@@ -293,7 +313,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                             {list.name}
                           </h4>
                           <p className="text-xs text-[#888888] font-mono mt-0.5">
-                            {pending === 0
+                            {notCompleted === 0
                               ? 'Todo registrado'
                               : `${pending} ${pending === 1 ? 'pendiente' : 'pendientes'}`}
                             {completed > 0 && ` · ${completed} realizada${completed === 1 ? '' : 's'}`}
@@ -322,7 +342,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                   <div
                     onClick={() => setSelectedListId('unassigned')}
                     className={`bg-[#131315] border rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.01] flex items-center justify-between group shadow-lg ${
-                      unassignedStats.pending === 0
+                      unassignedStats.isAllDone
                         ? 'border-[#4ade80]/30 hover:border-[#4ade80]'
                         : 'border-[#1e1e20] hover:border-[#c5a059]'
                     }`}
@@ -336,15 +356,16 @@ export const HoyView: React.FC<HoyViewProps> = ({
                           Sin Lista
                         </h4>
                         <p className="text-xs text-[#888888] font-mono mt-0.5">
-                          {unassignedStats.pending === 0
+                          {unassignedStats.notCompleted === 0
                             ? 'Todo registrado'
                             : `${unassignedStats.pending} ${unassignedStats.pending === 1 ? 'pendiente' : 'pendientes'}`}
+                          {unassignedStats.completed > 0 && ` · ${unassignedStats.completed} realizada${unassignedStats.completed === 1 ? '' : 's'}`}
                         </p>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0 ml-3">
-                      {unassignedStats.pending === 0 ? (
+                      {unassignedStats.isAllDone ? (
                         <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d]">
                           <Check className="w-3 h-3 stroke-[3]" />
                           <span>Al día</span>
@@ -458,6 +479,12 @@ export const HoyView: React.FC<HoyViewProps> = ({
                       counterValue={counterVal}
                       booleanValue={booleanVal}
                       checkpointRecords={checkpointRecords}
+                      readOnly={
+                        activeTab === 'completed' &&
+                        (activity.type === 'counter' ||
+                          (activity.type === 'checkpoint' &&
+                            activity.checkpointMode === 'multiple'))
+                      }
                       onIncrementCounter={() => onIncrementCounter(activity.id)}
                       onDecrementCounter={() => onDecrementCounter(activity.id)}
                       onRegisterCounterZero={onRegisterCounterZero ? () => onRegisterCounterZero(activity.id) : undefined}
@@ -539,6 +566,12 @@ export const HoyView: React.FC<HoyViewProps> = ({
                       counterValue={counterVal}
                       booleanValue={booleanVal}
                       checkpointRecords={checkpointRecords}
+                      readOnly={
+                        activeTab === 'completed' &&
+                        (activity.type === 'counter' ||
+                          (activity.type === 'checkpoint' &&
+                            activity.checkpointMode === 'multiple'))
+                      }
                       onIncrementCounter={() => onIncrementCounter(activity.id)}
                       onDecrementCounter={() => onDecrementCounter(activity.id)}
                       onRegisterCounterZero={onRegisterCounterZero ? () => onRegisterCounterZero(activity.id) : undefined}

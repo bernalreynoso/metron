@@ -3,7 +3,7 @@ import { Activity, ActivityRecord } from '../../types';
 import { ActivityCard } from '../hoy/ActivityCard';
 import { buildDateInTimezone, formatLocalTime, formatSpanishDate, formatTimeForInput } from '../../utils/dates';
 import { useAuth } from '../../context/AuthContext';
-import { Trash2, Clock, Check, X, Plus } from 'lucide-react';
+import { Trash2, Clock, Check, X } from 'lucide-react';
 
 interface HistoryRecordEditorProps {
   selectedDate: string;
@@ -15,7 +15,6 @@ interface HistoryRecordEditorProps {
   onClearCounterZero?: (activityId: string, date: string) => Promise<void> | void;
   onSetBoolean: (activityId: string, date: string, value: boolean | null) => void;
   onAddCheckpoint: (activityId: string, date: string) => Promise<void>;
-  onAddCheckpointWithTime?: (activityId: string, date: string, timeStr: string) => Promise<void> | void;
   onEditCheckpointTime?: (recordId: string, newTime: Date) => Promise<void> | void;
   onDeleteCheckpoint?: (recordId: string) => Promise<void>;
 }
@@ -30,14 +29,12 @@ export const HistoryRecordEditor: React.FC<HistoryRecordEditorProps> = ({
   onClearCounterZero,
   onSetBoolean,
   onAddCheckpoint,
-  onAddCheckpointWithTime,
   onEditCheckpointTime,
   onDeleteCheckpoint,
 }) => {
   const { timezone } = useAuth();
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [editTimeValue, setEditTimeValue] = useState<string>('');
-  const [newTimeByActivity, setNewTimeByActivity] = useState<Record<string, string>>({});
 
   // Aggregate records for selected date
   const counterMap: Record<string, number> = {};
@@ -109,15 +106,6 @@ export const HistoryRecordEditor: React.FC<HistoryRecordEditorProps> = ({
     handleCancelEdit();
   };
 
-  const handleAddWithTime = async (activityId: string) => {
-    const timeVal = newTimeByActivity[activityId];
-    if (!timeVal) return;
-    if (onAddCheckpointWithTime) {
-      await onAddCheckpointWithTime(activityId, selectedDate, timeVal);
-    }
-    setNewTimeByActivity((prev) => ({ ...prev, [activityId]: '' }));
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b border-[#1e1e20] pb-2">
@@ -183,109 +171,76 @@ export const HistoryRecordEditor: React.FC<HistoryRecordEditorProps> = ({
                   onAddCheckpoint={(actId) => onAddCheckpoint(actId, selectedDate)}
                 />
 
-                {/* If Checkpoint activity, allow viewing/editing individual records and adding with specific time */}
-                {activity.type === 'checkpoint' && (checkpointRecords.length > 0 || onAddCheckpointWithTime) && (
+                {/* If Checkpoint activity, allow viewing/editing individual records */}
+                {activity.type === 'checkpoint' && checkpointRecords.length > 0 && (
                   <div className="bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-3 ml-4 space-y-2.5">
-                    {checkpointRecords.length > 0 && (
-                      <>
-                        <p className="text-[11px] font-semibold text-[#888888]">
-                          Registros individuales de hora ({checkpointRecords.length}):
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {checkpointRecords.map((r) => {
-                            const isEditing = editingRecordId === r.id;
+                    <p className="text-[11px] font-semibold text-[#888888]">
+                      Registros individuales de hora ({checkpointRecords.length}):
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {checkpointRecords.map((r) => {
+                        const isEditing = editingRecordId === r.id;
 
-                            return (
-                              <div
-                                key={r.id}
-                                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#18181b] border border-[#28282b] text-xs font-mono text-[#e2e2e2]"
-                              >
-                                <Clock className="w-3.5 h-3.5 text-[#c5a059] shrink-0" />
-                                {isEditing ? (
-                                  <div className="flex items-center space-x-1.5">
-                                    <input
-                                      type="time"
-                                      value={editTimeValue}
-                                      onChange={(e) => setEditTimeValue(e.target.value)}
-                                      className="bg-[#0c0c0d] border border-[#c5a059] rounded px-1.5 py-0.5 text-xs text-[#e2e2e2] font-mono focus:outline-none"
-                                      autoFocus
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveEdit(r.id)}
-                                      title="Guardar hora"
-                                      className="p-1 hover:bg-[#1a2e1a] text-[#4ade80] rounded transition-colors"
-                                    >
-                                      <Check className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={handleCancelEdit}
-                                      title="Cancelar"
-                                      className="p-1 hover:bg-[#2a1a1a] text-[#888888] hover:text-[#f87171] rounded transition-colors"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <span
-                                      onClick={() => onEditCheckpointTime && handleStartEdit(r)}
-                                      className={`transition-colors ${
-                                        onEditCheckpointTime
-                                          ? 'cursor-pointer hover:text-[#c5a059] hover:underline underline-offset-2'
-                                          : ''
-                                      }`}
-                                      title={onEditCheckpointTime ? 'Toca para editar hora' : undefined}
-                                    >
-                                      {formatLocalTime(r.timestamp, timezone)}
-                                    </span>
-                                    {onDeleteCheckpoint && (
-                                      <button
-                                        onClick={() => onDeleteCheckpoint(r.id)}
-                                        title="Eliminar este checkpoint"
-                                        className="p-1 hover:bg-[#2a1a1a] text-[#888888] hover:text-[#f87171] rounded transition-colors"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                  </>
-                                )}
+                        return (
+                          <div
+                            key={r.id}
+                            className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#18181b] border border-[#28282b] text-xs font-mono text-[#e2e2e2]"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-[#c5a059] shrink-0" />
+                            {isEditing ? (
+                              <div className="flex items-center space-x-1.5">
+                                <input
+                                  type="time"
+                                  value={editTimeValue}
+                                  onChange={(e) => setEditTimeValue(e.target.value)}
+                                  className="bg-[#0c0c0d] border border-[#c5a059] rounded px-1.5 py-0.5 text-xs text-[#e2e2e2] font-mono focus:outline-none"
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEdit(r.id)}
+                                  title="Guardar hora"
+                                  className="p-1 hover:bg-[#1a2e1a] text-[#4ade80] rounded transition-colors"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEdit}
+                                  title="Cancelar"
+                                  className="p-1 hover:bg-[#2a1a1a] text-[#888888] hover:text-[#f87171] rounded transition-colors"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    )}
-
-                    {onAddCheckpointWithTime && (
-                      <div className={`flex flex-wrap items-center gap-2 ${checkpointRecords.length > 0 ? 'pt-2 border-t border-[#1e1e20]' : ''}`}>
-                        <span className="text-[11px] text-[#888888] font-mono flex items-center space-x-1">
-                          <Clock className="w-3 h-3 text-[#c5a059]" />
-                          <span>Hora específica:</span>
-                        </span>
-                        <input
-                          type="time"
-                          value={newTimeByActivity[activity.id] || ''}
-                          onChange={(e) =>
-                            setNewTimeByActivity((prev) => ({
-                              ...prev,
-                              [activity.id]: e.target.value,
-                            }))
-                          }
-                          className="bg-[#18181b] border border-[#28282b] focus:border-[#c5a059] rounded-lg px-2 py-1 text-xs text-[#e2e2e2] font-mono focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleAddWithTime(activity.id)}
-                          disabled={!newTimeByActivity[activity.id]}
-                          className="px-2.5 py-1 bg-[#18181b] hover:bg-[#c5a059] text-[#c5a059] hover:text-[#0c0c0d] disabled:opacity-40 disabled:hover:bg-[#18181b] disabled:hover:text-[#c5a059] border border-[#28282b] hover:border-[#c5a059] rounded-lg text-xs font-semibold font-mono transition-all flex items-center space-x-1"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>Agregar</span>
-                        </button>
-                      </div>
-                    )}
+                            ) : (
+                              <>
+                                <span
+                                  onClick={() => onEditCheckpointTime && handleStartEdit(r)}
+                                  className={`transition-colors ${
+                                    onEditCheckpointTime
+                                      ? 'cursor-pointer hover:text-[#c5a059] hover:underline underline-offset-2'
+                                      : ''
+                                  }`}
+                                  title={onEditCheckpointTime ? 'Toca para editar hora' : undefined}
+                                >
+                                  {formatLocalTime(r.timestamp, timezone)}
+                                </span>
+                                {onDeleteCheckpoint && (
+                                  <button
+                                    onClick={() => onDeleteCheckpoint(r.id)}
+                                    title="Eliminar este checkpoint"
+                                    className="p-1 hover:bg-[#2a1a1a] text-[#888888] hover:text-[#f87171] rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

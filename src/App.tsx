@@ -11,6 +11,7 @@ import { DailyActivityChart, DayChartItem } from './components/hoy/DailyActivity
 import { SummaryCards } from './components/progreso/SummaryCards';
 import { TrendsList } from './components/progreso/TrendsList';
 import { ActivityDetailModal } from './components/progreso/ActivityDetailModal';
+import { TrendCategoryModal } from './components/progreso/TrendCategoryModal';
 import { DatePickerStrip } from './components/historial/DatePickerStrip';
 import { HistoryRecordEditor } from './components/historial/HistoryRecordEditor';
 import { ActivityList } from './components/actividades/ActivityList';
@@ -22,7 +23,6 @@ import {
   getLocalDateString,
   getPastNDays,
   getComparisonPeriodDates,
-  buildDateInTimezone,
 } from './utils/dates';
 import { calculateBooleanMetrics, calculateCheckpointMetrics, calculateCounterMetrics } from './utils/metrics';
 import { isActivityCompletedToday } from './utils/activityStatus';
@@ -108,6 +108,7 @@ function MainApp() {
 
   // Selected activity for Detail Modal in PROGRESO tab
   const [selectedDetailActivity, setSelectedDetailActivity] = useState<Activity | null>(null);
+  const [selectedTrendCategory, setSelectedTrendCategory] = useState<'improving' | 'worsening' | 'stable' | 'insufficient' | null>(null);
 
   // Subscribe to user's activities
   useEffect(() => {
@@ -329,12 +330,12 @@ function MainApp() {
     return true;
   });
 
-  // Calculate Summary Counts for PROGRESO tab (7 days default)
+  // Calculate Summary Categories & Counts for PROGRESO tab (7 days default)
   const { currentPeriod, previousPeriod } = getComparisonPeriodDates(7, todayStr, timezone);
-  let improvingCount = 0;
-  let worseningCount = 0;
-  let stableCount = 0;
-  let insufficientCount = 0;
+  const improvingActivities: Activity[] = [];
+  const worseningActivities: Activity[] = [];
+  const stableActivities: Activity[] = [];
+  const insufficientActivities: Activity[] = [];
 
   activeActivities.forEach((act) => {
     const counterMap: Record<string, number> = {};
@@ -361,11 +362,29 @@ function MainApp() {
         ? calculateBooleanMetrics(act, booleanMap, todayStr, currentPeriod, previousPeriod).trend
         : calculateCheckpointMetrics(act, checkpointMap, todayStr, currentPeriod, previousPeriod, timezone).trend;
 
-    if (trend === 'MEJORANDO') improvingCount++;
-    else if (trend === 'EMPEORANDO') worseningCount++;
-    else if (trend === 'ESTABLE') stableCount++;
-    else insufficientCount++;
+    if (trend === 'MEJORANDO') improvingActivities.push(act);
+    else if (trend === 'EMPEORANDO') worseningActivities.push(act);
+    else if (trend === 'ESTABLE') stableActivities.push(act);
+    else insufficientActivities.push(act);
   });
+
+  const improvingCount = improvingActivities.length;
+  const worseningCount = worseningActivities.length;
+  const stableCount = stableActivities.length;
+  const insufficientCount = insufficientActivities.length;
+
+  const getTrendCategoryData = (cat: 'improving' | 'worsening' | 'stable' | 'insufficient') => {
+    switch (cat) {
+      case 'improving':
+        return { title: 'Actividades Mejorando', list: improvingActivities };
+      case 'worsening':
+        return { title: 'Actividades Empeorando', list: worseningActivities };
+      case 'stable':
+        return { title: 'Actividades Estables', list: stableActivities };
+      case 'insufficient':
+        return { title: 'Actividades Sin Datos Suficientes', list: insufficientActivities };
+    }
+  };
 
   // Action handlers
   const handleIncrement = (activityId: string, dateStr: string = todayStr) => {
@@ -396,12 +415,6 @@ function MainApp() {
   const handleAddCheckpoint = async (activityId: string, dateStr: string = todayStr) => {
     if (!user) return;
     await addCheckpointRecord(user.uid, activityId, dateStr);
-  };
-
-  const handleAddCheckpointWithTime = async (activityId: string, date: string, timeStr: string) => {
-    if (!user) return;
-    const customDate = buildDateInTimezone(date, timeStr, timezone);
-    await addCheckpointRecord(user.uid, activityId, date, customDate);
   };
 
   const handleEditCheckpointTime = async (recordId: string, newTime: Date) => {
@@ -520,6 +533,7 @@ function MainApp() {
               worseningCount={worseningCount}
               stableCount={stableCount}
               insufficientCount={insufficientCount}
+              onSelectCategory={(cat) => setSelectedTrendCategory(cat)}
             />
 
             <TrendsList
@@ -528,6 +542,18 @@ function MainApp() {
               todayStr={todayStr}
               onSelectActivity={(act) => setSelectedDetailActivity(act)}
             />
+
+            {selectedTrendCategory && (
+              <TrendCategoryModal
+                title={getTrendCategoryData(selectedTrendCategory).title}
+                activities={getTrendCategoryData(selectedTrendCategory).list}
+                onSelectActivity={(act) => {
+                  setSelectedTrendCategory(null);
+                  setSelectedDetailActivity(act);
+                }}
+                onClose={() => setSelectedTrendCategory(null)}
+              />
+            )}
 
             {selectedDetailActivity && (
               <ActivityDetailModal
@@ -558,7 +584,6 @@ function MainApp() {
               onClearCounterZero={handleClearCounterZero}
               onSetBoolean={handleSetBoolean}
               onAddCheckpoint={handleAddCheckpoint}
-              onAddCheckpointWithTime={handleAddCheckpointWithTime}
               onEditCheckpointTime={handleEditCheckpointTime}
               onDeleteCheckpoint={handleDeleteCheckpoint}
             />

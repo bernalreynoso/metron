@@ -10,6 +10,7 @@ interface ActivityCardProps {
   counterValue: number | null; // number or null (Sin registro)
   booleanValue: boolean | null; // true, false, or null (Sin registro)
   checkpointRecords?: ActivityRecord[];
+  readOnly?: boolean;
   onIncrementCounter: (activityId: string) => void;
   onDecrementCounter: (activityId: string) => Promise<void> | void;
   onRegisterCounterZero?: (activityId: string) => Promise<void> | void;
@@ -24,6 +25,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   counterValue,
   booleanValue,
   checkpointRecords = [],
+  readOnly = false,
   onIncrementCounter,
   onDecrementCounter,
   onRegisterCounterZero,
@@ -226,58 +228,68 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
       {/* Interactive Controls */}
       <div className="flex items-center justify-end">
         {activity.type === 'counter' ? (
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center space-x-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">
-              <button
-                id={`minus-btn-${activity.id}`}
-                onClick={handleMinus}
-                disabled={localCounter === null || localCounter <= 0 || isDecrementing}
-                aria-label={`Disminuir ${activity.name}`}
-                className="w-10 h-10 rounded-lg bg-[#18181b] hover:bg-[#222225] border border-[#28282b] flex items-center justify-center text-[#e2e2e2] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-
-              <span className="min-w-20 px-1 text-center font-mono text-[#c5a059] flex items-center justify-center">
-                {localCounter === null ? (
-                  <span className="text-[11px] font-semibold text-[#888888]">Sin registro</span>
-                ) : (
-                  <span className="text-lg font-bold">{localCounter}</span>
-                )}
-              </span>
-
-              <button
-                id={`plus-btn-${activity.id}`}
-                onClick={handlePlus}
-                aria-label={`Aumentar ${activity.name}`}
-                className="w-10 h-10 rounded-lg bg-[#c5a059] hover:bg-[#d4b068] text-[#0c0c0d] font-bold flex items-center justify-center active:scale-95 shadow-md transition-all"
-              >
-                <Plus className="w-5 h-5 stroke-[2.5]" />
-              </button>
+          readOnly ? (
+            <div className="flex items-center justify-center min-w-20 px-3 py-2 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl font-mono text-[#c5a059]">
+              {localCounter === null ? (
+                <span className="text-[11px] font-semibold text-[#888888]">Sin registro</span>
+              ) : (
+                <span className="text-lg font-bold">{localCounter}</span>
+              )}
             </div>
+          ) : (
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center space-x-3 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">
+                <button
+                  id={`minus-btn-${activity.id}`}
+                  onClick={handleMinus}
+                  disabled={localCounter === null || localCounter <= 0 || isDecrementing}
+                  aria-label={`Disminuir ${activity.name}`}
+                  className="w-10 h-10 rounded-lg bg-[#18181b] hover:bg-[#222225] border border-[#28282b] flex items-center justify-center text-[#e2e2e2] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
 
-            {localCounter === null && (
-              <button
-                type="button"
-                id={`zero-btn-${activity.id}`}
-                onClick={handleRegisterZero}
-                className="text-[11px] text-[#888888] hover:text-[#c5a059] transition-colors pr-1 underline underline-offset-2"
-              >
-                Registrar 0 hoy
-              </button>
-            )}
+                <span className="min-w-20 px-1 text-center font-mono text-[#c5a059] flex items-center justify-center">
+                  {localCounter === null ? (
+                    <span className="text-[11px] font-semibold text-[#888888]">Sin registro</span>
+                  ) : (
+                    <span className="text-lg font-bold">{localCounter}</span>
+                  )}
+                </span>
 
-            {localCounter === 0 && (
-              <button
-                type="button"
-                id={`clear-zero-btn-${activity.id}`}
-                onClick={handleClearZero}
-                className="text-[11px] text-[#888888] hover:text-[#f87171] transition-colors pr-1 underline underline-offset-2"
-              >
-                Quitar registro
-              </button>
-            )}
-          </div>
+                <button
+                  id={`plus-btn-${activity.id}`}
+                  onClick={handlePlus}
+                  aria-label={`Aumentar ${activity.name}`}
+                  className="w-10 h-10 rounded-lg bg-[#c5a059] hover:bg-[#d4b068] text-[#0c0c0d] font-bold flex items-center justify-center active:scale-95 shadow-md transition-all"
+                >
+                  <Plus className="w-5 h-5 stroke-[2.5]" />
+                </button>
+              </div>
+
+              {localCounter === null && (
+                <button
+                  type="button"
+                  id={`zero-btn-${activity.id}`}
+                  onClick={handleRegisterZero}
+                  className="text-[11px] text-[#888888] hover:text-[#c5a059] transition-colors pr-1 underline underline-offset-2"
+                >
+                  Registrar 0 hoy
+                </button>
+              )}
+
+              {localCounter === 0 && (
+                <button
+                  type="button"
+                  id={`clear-zero-btn-${activity.id}`}
+                  onClick={handleClearZero}
+                  className="text-[11px] text-[#888888] hover:text-[#f87171] transition-colors pr-1 underline underline-offset-2"
+                >
+                  Quitar registro
+                </button>
+              )}
+            </div>
+          )
         ) : activity.type === 'boolean' ? (
           <div className="flex items-center space-x-2 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">
             <button
@@ -308,36 +320,49 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
           </div>
         ) : (
           /* Checkpoint Control */
-          <div className="flex items-center space-x-2 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">
-            {checkpointRecords.length === 0 ? (
-              <button
-                id={`checkpoint-btn-${activity.id}`}
-                onClick={handleCheckpointClick}
-                disabled={isRegisteringCheckpoint}
-                className="px-4 py-2.5 bg-[#c5a059] hover:bg-[#d4b068] text-[#0c0c0d] font-bold text-xs rounded-lg shadow-md transition-all flex items-center space-x-2 active:scale-95 disabled:opacity-50"
-              >
-                <Clock className="w-4 h-4 stroke-[2.5]" />
-                <span>REGISTRAR HORA</span>
-              </button>
-            ) : (activity.checkpointMode || 'single') === 'single' ? (
+          readOnly ? (
+            checkpointRecords.length > 0 ? (
               <div className="px-3.5 py-2 bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d] font-bold text-xs rounded-lg flex items-center space-x-1.5">
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
-                <span>REGISTRADO HOY</span>
+                <span>{checkpointRecords.length === 1 ? 'REGISTRADO HOY' : `${checkpointRecords.length} REGISTROS`}</span>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="px-3.5 py-2 bg-[#18181b] text-[#888888] border border-[#28282b] font-medium text-xs rounded-lg">
+                Sin registro
+              </div>
+            )
+          ) : (
+            <div className="flex items-center space-x-2 bg-[#0c0c0d] border border-[#1e1e20] rounded-xl p-1.5">
+              {checkpointRecords.length === 0 ? (
                 <button
-                  id={`checkpoint-btn-again-${activity.id}`}
+                  id={`checkpoint-btn-${activity.id}`}
                   onClick={handleCheckpointClick}
                   disabled={isRegisteringCheckpoint}
-                  className="px-3.5 py-2 bg-[#18181b] hover:bg-[#222225] text-[#c5a059] border border-[#c5a059]/40 font-bold text-xs rounded-lg shadow-md transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-[#c5a059] hover:bg-[#d4b068] text-[#0c0c0d] font-bold text-xs rounded-lg shadow-md transition-all flex items-center space-x-2 active:scale-95 disabled:opacity-50"
                 >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>REGISTRAR DE NUEVO</span>
+                  <Clock className="w-4 h-4 stroke-[2.5]" />
+                  <span>REGISTRAR HORA</span>
                 </button>
-              </div>
-            )}
-          </div>
+              ) : (activity.checkpointMode || 'single') === 'single' ? (
+                <div className="px-3.5 py-2 bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d] font-bold text-xs rounded-lg flex items-center space-x-1.5">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>REGISTRADO HOY</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <button
+                    id={`checkpoint-btn-again-${activity.id}`}
+                    onClick={handleCheckpointClick}
+                    disabled={isRegisteringCheckpoint}
+                    className="px-3.5 py-2 bg-[#18181b] hover:bg-[#222225] text-[#c5a059] border border-[#c5a059]/40 font-bold text-xs rounded-lg shadow-md transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>REGISTRAR DE NUEVO</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )
         )}
       </div>
     </div>
