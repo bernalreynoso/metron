@@ -32,6 +32,7 @@ import {
   updateActivity,
   toggleActivityActive,
   deleteActivityPermanently,
+  swapActivityOrder,
 } from './services/activityService';
 import {
   subscribeLists,
@@ -447,6 +448,14 @@ function MainApp() {
     await deleteActivityPermanently(user.uid, activityId);
   };
 
+  const handleReorderActivity = async (
+    activityA: { id: string; order: number },
+    activityB: { id: string; order: number }
+  ) => {
+    if (!user) return;
+    await swapActivityOrder(user.uid, activityA, activityB);
+  };
+
   const handleCreateList = async (
     data: Omit<ActivityListType, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string> => {
@@ -600,6 +609,7 @@ function MainApp() {
             onUpdateActivity={handleUpdateActivity}
             onToggleActive={handleToggleActive}
             onDeleteActivity={handleDeleteActivityPermanently}
+            onReorderActivity={handleReorderActivity}
             onCreateList={handleCreateList}
             onUpdateList={handleUpdateList}
             onDeleteList={handleDeleteList}

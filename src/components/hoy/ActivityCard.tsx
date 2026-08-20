@@ -348,6 +348,11 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                   <span>REGISTRADO HOY</span>
                 </div>
+              ) : activity.maxCheckpointsPerDay !== undefined && checkpointRecords.length >= activity.maxCheckpointsPerDay ? (
+                <div className="px-3.5 py-2 bg-[#1a2e1a] text-[#4ade80] border border-[#2d4a2d] font-bold text-xs rounded-lg flex items-center space-x-1.5">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>{checkpointRecords.length}/{activity.maxCheckpointsPerDay} COMPLETO</span>
+                </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <button
@@ -357,7 +362,11 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                     className="px-3.5 py-2 bg-[#18181b] hover:bg-[#222225] text-[#c5a059] border border-[#c5a059]/40 font-bold text-xs rounded-lg shadow-md transition-all flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>REGISTRAR DE NUEVO</span>
+                    <span>
+                      {activity.maxCheckpointsPerDay !== undefined
+                        ? `REGISTRAR DE NUEVO (${checkpointRecords.length}/${activity.maxCheckpointsPerDay})`
+                        : 'REGISTRAR DE NUEVO'}
+                    </span>
                   </button>
                 </div>
               )}

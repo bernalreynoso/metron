@@ -3,7 +3,19 @@ import { Activity, ActivityList as ActivityListType, ActivityRecord } from '../.
 import { IconRenderer } from '../common/IconRenderer';
 import { ActivityFormModal } from './ActivityFormModal';
 import { ListFormModal } from './ListFormModal';
-import { Plus, Edit2, Eye, EyeOff, Trash2, Info, AlertTriangle, Folder, Layers } from 'lucide-react';
+import {
+  Plus,
+  Edit2,
+  Eye,
+  EyeOff,
+  Trash2,
+  Info,
+  AlertTriangle,
+  Folder,
+  Layers,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 
 interface ActivityListProps {
   activities: Activity[];
@@ -13,6 +25,10 @@ interface ActivityListProps {
   onUpdateActivity: (activityId: string, updates: Partial<Activity>) => Promise<void>;
   onToggleActive: (activityId: string, active: boolean) => Promise<void>;
   onDeleteActivity?: (activityId: string) => Promise<void>;
+  onReorderActivity?: (
+    activityA: { id: string; order: number },
+    activityB: { id: string; order: number }
+  ) => Promise<void>;
   onCreateList?: (listData: Omit<ActivityListType, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   onUpdateList?: (listId: string, updates: Partial<ActivityListType>) => Promise<void>;
   onDeleteList?: (listId: string) => Promise<void>;
@@ -26,6 +42,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   onUpdateActivity,
   onToggleActive,
   onDeleteActivity,
+  onReorderActivity,
   onCreateList,
   onUpdateList,
   onDeleteList,
@@ -35,6 +52,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   const [deletingActivity, setDeletingActivity] = useState<Activity | null>(null);
   const [infoActivity, setInfoActivity] = useState<Activity | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
 
   // List management state
   const [showListModal, setShowListModal] = useState(false);
@@ -42,8 +60,52 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   const [deletingList, setDeletingList] = useState<ActivityListType | null>(null);
   const [isDeletingList, setIsDeletingList] = useState(false);
 
-  const activeActivities = activities.filter((a) => a.active);
+  const activeActivities = [...activities.filter((a) => a.active)].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  );
   const inactiveActivities = activities.filter((a) => !a.active);
+
+  const handleMoveUp = async (index: number) => {
+    if (index <= 0 || !onReorderActivity || isReordering) return;
+    const current = activeActivities[index];
+    const target = activeActivities[index - 1];
+    if (!current || !target) return;
+
+    setIsReordering(true);
+    try {
+      const currentOrder = current.order !== undefined && current.order !== target.order ? current.order : index;
+      const targetOrder = target.order !== undefined && current.order !== target.order ? target.order : index - 1;
+      await onReorderActivity(
+        { id: current.id, order: currentOrder },
+        { id: target.id, order: targetOrder }
+      );
+    } catch (err) {
+      console.error('Error reordering activity:', err);
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index >= activeActivities.length - 1 || !onReorderActivity || isReordering) return;
+    const current = activeActivities[index];
+    const target = activeActivities[index + 1];
+    if (!current || !target) return;
+
+    setIsReordering(true);
+    try {
+      const currentOrder = current.order !== undefined && current.order !== target.order ? current.order : index;
+      const targetOrder = target.order !== undefined && current.order !== target.order ? target.order : index + 1;
+      await onReorderActivity(
+        { id: current.id, order: currentOrder },
+        { id: target.id, order: targetOrder }
+      );
+    } catch (err) {
+      console.error('Error reordering activity:', err);
+    } finally {
+      setIsReordering(false);
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingActivity(null);
@@ -227,7 +289,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
           Actividades Activas ({activeActivities.length})
         </h3>
         <div className="space-y-3">
-          {activeActivities.map((act) => {
+          {activeActivities.map((act, index) => {
             const hasRecords = records.some((r) => r.activityId === act.id);
             const listObj = lists.find((l) => l.id === act.listId);
 
@@ -265,6 +327,28 @@ export const ActivityList: React.FC<ActivityListProps> = ({
 
                 {/* Action Buttons */}
                 <div className="flex items-center space-x-2">
+                  {/* Reorder Buttons */}
+                  <div className="flex items-center space-x-1 mr-1">
+                    <button
+                      type="button"
+                      disabled={index === 0 || isReordering}
+                      onClick={() => handleMoveUp(index)}
+                      title="Subir posición"
+                      className="p-2 rounded-lg bg-[#18181b] hover:bg-[#222225] text-[#888888] hover:text-[#e2e2e2] disabled:opacity-30 disabled:hover:bg-[#18181b] disabled:hover:text-[#888888] disabled:cursor-not-allowed border border-[#28282b] transition-colors"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === activeActivities.length - 1 || isReordering}
+                      onClick={() => handleMoveDown(index)}
+                      title="Bajar posición"
+                      className="p-2 rounded-lg bg-[#18181b] hover:bg-[#222225] text-[#888888] hover:text-[#e2e2e2] disabled:opacity-30 disabled:hover:bg-[#18181b] disabled:hover:text-[#888888] disabled:cursor-not-allowed border border-[#28282b] transition-colors"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
+
                   {hasRecords ? (
                     <button
                       onClick={() => setInfoActivity(act)}

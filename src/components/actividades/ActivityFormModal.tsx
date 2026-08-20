@@ -34,6 +34,9 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   const [trackSegments, setTrackSegments] = useState<boolean>(
     initialActivity?.trackSegments || false
   );
+  const [maxCheckpointsPerDay, setMaxCheckpointsPerDay] = useState<number | ''>(
+    initialActivity?.maxCheckpointsPerDay || ''
+  );
   const [direction, setDirection] = useState<ActivityDirection>(
     initialActivity?.direction || 'decrease'
   );
@@ -115,6 +118,13 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
         activityData.checkpointMode = checkpointMode;
         if (checkpointMode === 'multiple') {
           activityData.trackSegments = trackSegments;
+          const parsedMax =
+            typeof maxCheckpointsPerDay === 'number'
+              ? maxCheckpointsPerDay
+              : parseInt(String(maxCheckpointsPerDay), 10);
+          if (!isNaN(parsedMax) && parsedMax > 0) {
+            activityData.maxCheckpointsPerDay = parsedMax;
+          }
         }
       }
 
@@ -354,23 +364,51 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
               </div>
 
               {checkpointMode === 'multiple' && (
-                <div className="bg-[#18181b] border border-[#28282b] rounded-xl p-3">
-                  <label className="flex items-start space-x-2.5 cursor-pointer">
+                <div className="space-y-3">
+                  <div className="bg-[#18181b] border border-[#28282b] rounded-xl p-3">
+                    <label className="flex items-start space-x-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={trackSegments}
+                        onChange={(e) => setTrackSegments(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded bg-[#0c0c0d] border-[#28282b] text-[#c5a059] accent-[#c5a059] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <span className="text-xs font-semibold text-[#e2e2e2] block">
+                          Analizar tramos entre checkpoints
+                        </span>
+                        <span className="text-[11px] text-[#888888] leading-tight block mt-0.5 font-light">
+                          Útil para actividades con varios checkpoints seguidos en el mismo recorrido (ej. transbordes de transporte). Muestra cuánto tardas entre cada uno.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="bg-[#18181b] border border-[#28282b] rounded-xl p-3 space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#e2e2e2]">
+                      Límite de checkpoints por día (opcional)
+                    </label>
+                    <p className="text-[11px] text-[#888888] font-light leading-tight">
+                      Deja vacío para no poner límite. Útil si sabes que siempre son la misma cantidad (ej. 3 transbordes).
+                    </p>
                     <input
-                      type="checkbox"
-                      checked={trackSegments}
-                      onChange={(e) => setTrackSegments(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded bg-[#0c0c0d] border-[#28282b] text-[#c5a059] accent-[#c5a059] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                      id="max-checkpoints-input"
+                      type="number"
+                      min="1"
+                      placeholder="Ej: 3"
+                      value={maxCheckpointsPerDay}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setMaxCheckpointsPerDay('');
+                        } else {
+                          const num = parseInt(val, 10);
+                          setMaxCheckpointsPerDay(isNaN(num) ? '' : num);
+                        }
+                      }}
+                      className="w-full sm:w-32 bg-[#0c0c0d] border border-[#28282b] rounded-lg py-1.5 px-3 text-sm font-mono text-[#e2e2e2] placeholder-[#666666] focus:outline-none focus:border-[#c5a059]"
                     />
-                    <div className="flex-1">
-                      <span className="text-xs font-semibold text-[#e2e2e2] block">
-                        Analizar tramos entre checkpoints
-                      </span>
-                      <span className="text-[11px] text-[#888888] leading-tight block mt-0.5 font-light">
-                        Útil para actividades con varios checkpoints seguidos en el mismo recorrido (ej. transbordes de transporte). Muestra cuánto tardas entre cada uno.
-                      </span>
-                    </div>
-                  </label>
+                  </div>
                 </div>
               )}
             </div>

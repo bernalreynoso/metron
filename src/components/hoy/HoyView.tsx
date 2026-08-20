@@ -90,6 +90,19 @@ export const HoyView: React.FC<HoyViewProps> = ({
     return { pendingActivities: pending, completedActivities: completed };
   }, [activeActivities, todayBooleanMap, todayCheckpointMap, todayCounterMap]);
 
+  // Genuine count of active activities that have not been completed today
+  const totalNotCompleted = useMemo(() => {
+    return activeActivities.filter(
+      (act) =>
+        !isActivityCompletedToday(
+          act,
+          todayBooleanMap,
+          todayCheckpointMap,
+          todayCounterMap
+        )
+    ).length;
+  }, [activeActivities, todayBooleanMap, todayCheckpointMap, todayCounterMap]);
+
   // Helper to compute stats for a specific list
   const getListStats = (listId: string | null) => {
     const listActs = activeActivities.filter((a) =>
@@ -134,7 +147,13 @@ export const HoyView: React.FC<HoyViewProps> = ({
         return source.filter((a) => !a.listId);
       }
       if (selectedListId === 'all') {
-        return source;
+        return source.filter((a) => {
+          if (a.type === 'counter') {
+            const val = todayCounterMap[a.id];
+            return val === undefined || val === null;
+          }
+          return true;
+        });
       }
       return source.filter((a) => a.listId === selectedListId);
     }
@@ -146,6 +165,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
     completedActivities,
     searchQuery,
     selectedListId,
+    todayCounterMap,
   ]);
 
   const selectedListObj = useMemo(() => {
@@ -178,7 +198,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
           <div className="px-3 py-1.5 bg-[#18181b] border border-[#28282b] rounded-xl text-xs font-mono flex items-center space-x-2">
             <ListTodo className="w-4 h-4 text-[#f59e0b]" />
             <span className="text-[#888888]">Pendientes:</span>
-            <span className="font-bold text-[#e2e2e2]">{pendingActivities.length}</span>
+            <span className="font-bold text-[#e2e2e2]">{totalNotCompleted}</span>
           </div>
 
           <div className="px-3 py-1.5 bg-[#18181b] border border-[#28282b] rounded-xl text-xs font-mono flex items-center space-x-2">
@@ -203,7 +223,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
             }`}
           >
             <ListTodo className="w-3.5 h-3.5" />
-            <span>PENDIENTES ({pendingActivities.length})</span>
+            <span>PENDIENTES ({totalNotCompleted})</span>
           </button>
 
           <button
@@ -387,7 +407,7 @@ export const HoyView: React.FC<HoyViewProps> = ({
                   onClick={() => setSelectedListId('all')}
                   className="text-xs text-[#888888] hover:text-[#c5a059] font-mono underline transition-colors"
                 >
-                  Ver todas las pendientes ({pendingActivities.length}) sin filtrar por lista
+                  Ver todas las pendientes ({totalNotCompleted}) sin filtrar por lista
                 </button>
               </div>
             </div>

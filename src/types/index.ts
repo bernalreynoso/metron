@@ -29,6 +29,7 @@ export interface Activity {
   direction: ActivityDirection;
   checkpointMode?: CheckpointMode;
   trackSegments?: boolean;
+  maxCheckpointsPerDay?: number;
   listId?: string | null;
   active: boolean;
   order: number;

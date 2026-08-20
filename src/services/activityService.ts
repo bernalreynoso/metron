@@ -159,3 +159,25 @@ export async function deleteActivityPermanently(userId: string, activityId: stri
   const activityRef = doc(db, 'users', userId, 'activities', activityId);
   return await deleteDoc(activityRef);
 }
+
+export async function swapActivityOrder(
+  userId: string,
+  activityA: { id: string; order: number },
+  activityB: { id: string; order: number }
+) {
+  const batch = writeBatch(db);
+  const docRefA = doc(db, 'users', userId, 'activities', activityA.id);
+  const docRefB = doc(db, 'users', userId, 'activities', activityB.id);
+
+  batch.update(docRefA, {
+    order: activityB.order,
+    updatedAt: serverTimestamp(),
+  });
+
+  batch.update(docRefB, {
+    order: activityA.order,
+    updatedAt: serverTimestamp(),
+  });
+
+  await batch.commit();
+}
